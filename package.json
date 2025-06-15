@@ -1,0 +1,39 @@
+{
+  "name": "webseal",
+  "version": "1.0.0",
+  "description": "专业的网页存证工具 - 使用盲水印技术为网页快照添加时间戳和自定义文字水印",
+  "private": true,
+  "keywords": ["web", "screenshot", "watermark", "evidence", "archive", "steganography"],
+  "author": "WebSeal Team",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-toast": "^1.2.14",
+    "lucide-react": "^0.514.0",
+    "next": "15.3.3",
+    "puppeteer": "^24.10.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
