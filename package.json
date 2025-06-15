@@ -1,0 +1,23 @@
+{
+  "name": "webseal",
+  "version": "1.0.0",
+  "description": "Web page screenshot with invisible watermark for evidence preservation",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "build": "npm run client:build && npm run server:build",
+    "start": "node server/dist/index.js",
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "client:dev": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
+    "docker:build": "docker build -t webseal .",
+    "docker:run": "docker run -p 3000:3000 -p 5173:5173 webseal"
+  },
+  "keywords": ["web", "screenshot", "watermark", "evidence", "archival"],
+  "author": "WebSeal Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
