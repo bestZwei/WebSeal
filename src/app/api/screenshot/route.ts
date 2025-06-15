@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
       new URL(url);
     } catch {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
-    }
-      // 配置Puppeteer启动选项，根据平台调整
+    }      // 配置Puppeteer启动选项，根据平台调整
     const isWin = process.platform === 'win32';
+    const isDev = process.env.NODE_ENV !== 'production';
+    
     const puppeteerOptions: LaunchOptions = {
       headless: true,
       args: [
@@ -29,27 +30,40 @@ export async function POST(request: NextRequest) {
         '--no-zygote',
         '--disable-gpu',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--ignore-certificate-errors',
+        '--ignore-ssl-errors',
+        '--ignore-certificate-errors-spki-list'
       ]
     };
     
-    // Windows环境下不指定executablePath，让Puppeteer自动寻找Chrome
-    if (!isWin && process.env.NODE_ENV === 'production') {
+    // Windows开发环境特殊配置
+    if (isWin && isDev) {
+      // Windows开发环境让Puppeteer自动寻找Chrome
+      console.log('Running in Windows development mode');
+    } else if (!isWin && !isDev) {
+      // Linux生产环境配置
       puppeteerOptions.executablePath = '/usr/bin/chromium-browser';
     }
-    
-    // 启动浏览器，添加重试逻辑
+      // 启动浏览器，添加重试逻辑
     let browser;
+    console.log('Attempting to launch browser...');
     try {
       browser = await puppeteer.launch(puppeteerOptions);
+      console.log('Browser launched successfully');
     } catch (browserError) {
       console.error('Initial browser launch failed:', browserError);
       // 重试，使用更简单的配置
       try {
+        console.log('Retrying with simplified configuration...');
         browser = await puppeteer.launch({ 
           headless: true,
-          args: ['--no-sandbox'] 
+          args: ['--no-sandbox', '--disable-dev-shm-usage'] 
         });
+        console.log('Browser launched successfully on retry');
       } catch (retryError) {
         throw new Error(`Failed to start browser: ${(retryError as Error).message}`);
       }
@@ -62,22 +76,37 @@ export async function POST(request: NextRequest) {
       width: 1920,
       height: 1080,
       deviceScaleFactor: 1,
-    });
-
-    // 设置用户代理
+    });    // 设置用户代理
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     );
 
     // 导航到目标页面，添加错误处理
     try {
-      await page.goto(url, {
-        waitUntil: 'networkidle2',
-        timeout: 30000,
-      });
+      // 设置页面超时
+      page.setDefaultTimeout(60000);
+      page.setDefaultNavigationTimeout(60000);
       
-      // 等待页面加载完成
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log(`Navigating to URL: ${url}`);
+      
+      // 使用更宽松的等待策略
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded', // 改为更宽松的等待策略
+        timeout: 45000, // 增加超时时间
+      });
+        console.log('Page navigation completed');
+      
+      // 等待页面稳定，但设置最大等待时间
+      try {
+        await page.waitForFunction(() => document.readyState === 'complete', { timeout: 10000 });
+        console.log('Page load state completed');
+      } catch (loadStateTimeout) {
+        console.log('Page load state timeout, proceeding with screenshot');
+      }
+      
+      // 额外等待确保页面渲染完成
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log('Ready to take screenshot');
       
       // 截取整个页面
       const screenshot = await page.screenshot({
