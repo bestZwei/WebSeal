@@ -1,6 +1,7 @@
 class WebSeal {
     constructor() {
-        this.API_BASE = '/api'; // Cloudflare Functions endpoint
+        // Use relative path for API calls
+        this.API_BASE = window.location.hostname === 'localhost' ? '/api' : '/api';
         this.init();
     }
 
@@ -208,16 +209,28 @@ class WebSeal {
                 })
             });
 
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error(`服务器返回了非JSON响应: ${response.status} ${response.statusText}`);
+            }
+
             const result = await response.json();
             
             if (!response.ok) {
-                throw new Error(result.error || '快照生成失败');
+                throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             this.displayCaptureResult(result);
         } catch (error) {
             console.error('Capture error:', error);
-            this.showError(error.message || '快照生成失败，请稍后重试');
+            if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
+                this.showError('服务器响应格式错误，请检查API配置');
+            } else if (error.message.includes('405')) {
+                this.showError('API路由配置错误，请检查Functions目录结构');
+            } else {
+                this.showError(error.message || '快照生成失败，请稍后重试');
+            }
         } finally {
             this.hideLoading();
         }
