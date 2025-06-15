@@ -11,7 +11,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "docker:build": "docker build -t webseal:latest .",
+    "docker:run": "docker run -d -p 3000:3000 --name webseal-container webseal:latest",
+    "docker:stop": "docker stop webseal-container && docker rm webseal-container",
+    "docker:logs": "docker logs webseal-container",
+    "compose:up": "docker-compose up -d",
+    "compose:down": "docker-compose down",
+    "compose:logs": "docker-compose logs -f"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
