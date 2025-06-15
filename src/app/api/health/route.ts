@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import puppeteer, { type LaunchOptions } from 'puppeteer';
 
 export async function GET() {
   try {
@@ -7,10 +8,9 @@ export async function GET() {
     let puppeteerError = null;
     
     try {
-      const puppeteer = require('puppeteer');
       // 根据平台配置适当的选项
       const isWin = process.platform === 'win32';
-      const puppeteerOptions: any = {
+      const puppeteerOptions: LaunchOptions = {
         headless: true,
         args: [
           '--no-sandbox',
@@ -34,11 +34,9 @@ export async function GET() {
       await browser.close();
       puppeteerStatus = true;
     } catch (error) {
-      puppeteerError = (error as Error).message;
-      // 尝试使用更简单的配置重试
+      puppeteerError = (error as Error).message;      // 尝试使用更简单的配置重试
       if (puppeteerError) {
         try {
-          const puppeteer = require('puppeteer');
           const browser = await puppeteer.launch({ 
             headless: true,
             args: ['--no-sandbox']

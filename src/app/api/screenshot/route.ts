@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import puppeteer, { type LaunchOptions } from 'puppeteer';
 import { addWatermark } from '@/lib/watermark';
 
 export async function POST(request: NextRequest) {
@@ -16,10 +16,9 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
-    
-    // 配置Puppeteer启动选项，根据平台调整
+      // 配置Puppeteer启动选项，根据平台调整
     const isWin = process.platform === 'win32';
-    const puppeteerOptions: any = {
+    const puppeteerOptions: LaunchOptions = {
       headless: true,
       args: [
         '--no-sandbox',
