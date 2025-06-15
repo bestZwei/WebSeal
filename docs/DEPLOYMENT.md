@@ -67,6 +67,81 @@ Vercel 是最简单的部署方案，特别适合 Next.js 应用。
 }
 ```
 
+### Vercel 部署注意事项
+
+1. **函数超时配置**
+   
+   WebSeal 项目已经配置了适当的函数超时时间：
+   ```json
+   {
+     "functions": {
+       "src/app/api/screenshot/route.ts": {
+         "maxDuration": 30
+       },
+       "src/app/api/extract-watermark/route.ts": {
+         "maxDuration": 30
+       }
+     }
+   }
+   ```
+
+2. **Puppeteer 配置**
+   
+   Vercel 环境中 Puppeteer 需要特殊配置：
+   ```javascript
+   const browser = await puppeteer.launch({
+     args: [
+       '--no-sandbox',
+       '--disable-setuid-sandbox',
+       '--disable-dev-shm-usage',
+       '--disable-accelerated-2d-canvas',
+       '--no-first-run',
+       '--no-zygote',
+       '--single-process',
+       '--disable-gpu'
+     ]
+   });
+   ```
+
+3. **内存限制**
+   
+   由于 Puppeteer 需要较多内存，建议：
+   - 使用 Vercel Pro 计划获得更多内存
+   - 优化截图参数减少内存使用
+   - 监控函数执行时间和内存使用
+
+### 常见 Vercel 部署问题
+
+#### 问题1：函数超时
+```
+Error: Task timed out after 10.00 seconds
+```
+
+**解决方案：**
+- 确保 `vercel.json` 中设置了正确的 `maxDuration`
+- 检查目标网站是否响应缓慢
+- 考虑使用 Vercel Pro 计划
+
+#### 问题2：内存不足
+```
+Error: Process out of memory
+```
+
+**解决方案：**
+- 升级到 Vercel Pro 计划
+- 优化 Puppeteer 启动参数
+- 减少并发请求数量
+
+#### 问题3：配置文件错误
+```
+The `functions` property cannot be used in conjunction with the `builds` property
+```
+
+**解决方案：**
+- 移除 `builds` 属性，只保留 `functions`
+- 使用简化的 `vercel.json` 配置
+- 让 Vercel 自动检测 Next.js 项目
+
 ## 🐳 Docker 部署
 
 ### 创建 Dockerfile

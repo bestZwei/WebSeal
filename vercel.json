@@ -1,21 +1,14 @@
 {
-  "version": 2,
-  "name": "webseal",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "functions": {
     "src/app/api/screenshot/route.ts": {
       "maxDuration": 30
     },
     "src/app/api/extract-watermark/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/health/route.ts": {
+      "maxDuration": 10
     }
-  }
+  },
+  "regions": ["hkg1", "sin1", "sfo1"]
 }
