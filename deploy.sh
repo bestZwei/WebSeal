@@ -82,11 +82,42 @@ deploy_vercel() {
     if ! command -v vercel &> /dev/null; then
         print_warning "Vercel CLI 未安装，正在安装..."
         npm install -g vercel
+        if [ $? -ne 0 ]; then
+            print_error "Vercel CLI 安装失败"
+            exit 1
+        fi
+    fi
+    
+    print_status "检查 vercel.json 配置..."
+    if [ ! -f "vercel.json" ]; then
+        print_error "vercel.json 配置文件不存在"
+        exit 1
+    fi
+    
+    # 验证 JSON 格式
+    if ! python -m json.tool vercel.json > /dev/null 2>&1; then
+        if ! node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'))" > /dev/null 2>&1; then
+            print_error "vercel.json 格式无效"
+            exit 1
+        fi
     fi
     
     print_status "开始部署到 Vercel..."
+    print_warning "注意：首次部署需要登录并配置项目"
+    
     vercel --prod
+    if [ $? -ne 0 ]; then
+        print_error "Vercel 部署失败"
+        print_status "请检查："
+        echo "  1. 是否已登录 Vercel CLI (vercel login)"
+        echo "  2. 项目配置是否正确"
+        echo "  3. vercel.json 格式是否有效"
+        exit 1
+    fi
+    
     print_success "Vercel 部署完成！"
+    print_status "检查部署状态：vercel ls"
+    print_status "查看项目日志：vercel logs"
 }
 
 # Docker 部署

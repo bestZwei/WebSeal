@@ -27,9 +27,10 @@ RUN apk add --no-cache \
     ttf-freefont \
     font-noto-emoji
 
-# 设置 Puppeteer 使用系统 Chrome
+# 设置 Puppeteer 环境变量
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    DOCKER_BUILD=true
 
 # 构建应用
 RUN npm run build
