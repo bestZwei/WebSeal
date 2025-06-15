@@ -13,8 +13,12 @@ import {
   ExternalLink,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Copy,
+  Globe
 } from 'lucide-react';
+import { useToast } from '@/components/Toast';
+import { downloadImage, formatTimestamp, validateUrl, generateFilename } from '@/lib/utils';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -22,17 +26,30 @@ export default function Home() {
   const [screenshotResult, setScreenshotResult] = useState<{
     url: string;
     timestamp: string;
-    watermarked: boolean;
+    originalUrl: string;
+    customText: string;
   } | null>(null);
   const [extractedWatermark, setExtractedWatermark] = useState<{
     timestamp: string;
     customText: string;
+    url: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'capture' | 'extract'>('capture');
+  const [dragActive, setDragActive] = useState(false);
+  
+  const { showToast, ToastContainer } = useToast();
 
   const handleScreenshot = async () => {
-    if (!url) return;
+    if (!url) {
+      showToast('请输入网址', 'error');
+      return;
+    }
+    
+    if (!validateUrl(url)) {
+      showToast('请输入有效的网址格式', 'error');
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -52,17 +69,42 @@ export default function Home() {
         setScreenshotResult({
           url: result.imageUrl,
           timestamp: result.timestamp,
-          watermarked: true,
+          originalUrl: result.originalUrl,
+          customText: result.customText || '',
         });
+        showToast('网页快照生成成功！', 'success');
+      } else {
+        const error = await response.json();
+        showToast(error.error || '生成快照失败', 'error');
       }
     } catch (error) {
       console.error('Screenshot failed:', error);
+      showToast('网络错误，请稍后重试', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleExtractWatermark = async (imageFile: File) => {
+    if (!imageFile) {
+      showToast('请选择图片文件', 'error');
+      return;
+    }
+
+    // 验证文件类型
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(imageFile.type)) {
+      showToast('请选择 PNG、JPG 或 JPEG 格式的图片', 'error');
+      return;
+    }
+
+    // 验证文件大小 (10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (imageFile.size > maxSize) {
+      showToast('文件过大，请选择小于 10MB 的图片', 'error');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const formData = new FormData();
@@ -78,12 +120,65 @@ export default function Home() {
         setExtractedWatermark({
           timestamp: result.timestamp,
           customText: result.customText,
+          url: result.url,
         });
+        showToast('水印提取成功！', 'success');
+      } else {
+        const error = await response.json();
+        showToast(error.error || '水印提取失败', 'error');
       }
     } catch (error) {
       console.error('Watermark extraction failed:', error);
+      showToast('网络错误，请稍后重试', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (screenshotResult) {
+      try {
+        const filename = generateFilename(screenshotResult.originalUrl, screenshotResult.timestamp);
+        downloadImage(screenshotResult.url, filename);
+        showToast('下载成功！', 'success');
+      } catch (error) {
+        showToast('下载失败，请稍后重试', 'error');
+      }
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    if (extractedWatermark?.url) {
+      try {
+        await navigator.clipboard.writeText(extractedWatermark.url);
+        showToast('网址已复制到剪贴板', 'success');
+      } catch (error) {
+        showToast('复制失败', 'error');
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      handleExtractWatermark(imageFile);
+    } else {
+      showToast('请拖拽图片文件', 'error');
     }
   };
 
@@ -252,7 +347,7 @@ export default function Home() {
                         <Clock className="h-5 w-5 text-blue-600" />
                         <div>
                           <p className="text-sm font-medium text-gray-900">生成时间</p>
-                          <p className="text-sm text-gray-600">{screenshotResult.timestamp}</p>
+                          <p className="text-sm text-gray-600">{formatTimestamp(screenshotResult.timestamp)}</p>
                         </div>
                       </div>
                       
@@ -269,13 +364,24 @@ export default function Home() {
                           <Eye className="h-5 w-5 text-purple-600" />
                           <div>
                             <p className="text-sm font-medium text-gray-900">自定义文字</p>
-                            <p className="text-sm text-gray-600">{customText}</p>
+                            <p className="text-sm text-gray-600">{screenshotResult.customText}</p>
                           </div>
                         </div>
                       )}
+
+                      <div className="flex items-center space-x-3 p-3 bg-indigo-50 rounded-lg">
+                        <Globe className="h-5 w-5 text-indigo-600" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">原始网址</p>
+                          <p className="text-sm text-gray-600 truncate">{screenshotResult.originalUrl}</p>
+                        </div>
+                      </div>
                     </div>
 
-                    <button className="w-full mt-6 bg-gray-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2">
+                    <button 
+                      onClick={handleDownload}
+                      className="w-full mt-6 bg-gray-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                    >
                       <Download className="h-5 w-5" />
                       <span>下载快照</span>
                     </button>
@@ -300,7 +406,16 @@ export default function Home() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     上传图片文件 *
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                      dragActive 
+                        ? 'border-blue-400 bg-blue-50' 
+                        : 'border-gray-300 hover:border-blue-400'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-lg font-medium text-gray-900 mb-2">
                       点击上传或拖拽图片文件
@@ -345,7 +460,7 @@ export default function Home() {
                       <Clock className="h-6 w-6 text-blue-600" />
                       <div>
                         <p className="font-semibold text-gray-900">原始时间戳</p>
-                        <p className="text-gray-600">{extractedWatermark.timestamp}</p>
+                        <p className="text-gray-600">{formatTimestamp(extractedWatermark.timestamp)}</p>
                       </div>
                     </div>
 
@@ -356,6 +471,21 @@ export default function Home() {
                           <p className="font-semibold text-gray-900">自定义文字</p>
                           <p className="text-gray-600">{extractedWatermark.customText}</p>
                         </div>
+                      </div>
+                    )}
+
+                    {extractedWatermark.url && (
+                      <div className="p-4 bg-indigo-50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-semibold text-gray-900">原始网址</p>
+                          <button
+                            onClick={handleCopyUrl}
+                            className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <p className="text-gray-600 break-all text-sm">{extractedWatermark.url}</p>
                       </div>
                     )}
                   </div>
@@ -455,6 +585,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 }

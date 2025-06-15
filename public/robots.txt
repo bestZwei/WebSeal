@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# 允许搜索引擎索引
+Sitemap: https://webseal.vercel.app/sitemap.xml
