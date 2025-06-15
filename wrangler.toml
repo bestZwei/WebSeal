@@ -1,0 +1,19 @@
+name = "webseal"
+compatibility_date = "2024-01-01"
+
+# Development environment
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+[env.production]
+routes = [
+  { pattern = "webseal.pages.dev/*", zone_name = "pages.dev" }
+]
+
+[[env.production.r2_buckets]]
+binding = "SNAPSHOTS"
+bucket_name = "webseal-snapshots"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+BROWSERLESS_API_KEY = ""  # Add your Browserless API key here
