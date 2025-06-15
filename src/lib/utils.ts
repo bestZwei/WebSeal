@@ -23,8 +23,7 @@ export function formatTimestamp(timestamp: string): string {
       minute: '2-digit',
       second: '2-digit',
       timeZone: 'Asia/Shanghai'
-    });
-  } catch (error) {
+    });  } catch {
     return timestamp;
   }
 }

@@ -12,7 +12,6 @@ import {
   Archive,
   ExternalLink,
   CheckCircle,
-  AlertCircle,
   Loader2,
   Copy,
   Globe
@@ -76,13 +75,12 @@ export default function Home() {
       } else {
         const error = await response.json();
         showToast(error.error || '生成快照失败', 'error');
+      }      } catch (error) {
+        console.error('Screenshot failed:', error);
+        showToast('网络错误，请稍后重试', 'error');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Screenshot failed:', error);
-      showToast('网络错误，请稍后重试', 'error');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleExtractWatermark = async (imageFile: File) => {
@@ -126,13 +124,12 @@ export default function Home() {
       } else {
         const error = await response.json();
         showToast(error.error || '水印提取失败', 'error');
+      }      } catch (error) {
+        console.error('Watermark extraction failed:', error);
+        showToast('网络错误，请稍后重试', 'error');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Watermark extraction failed:', error);
-      showToast('网络错误，请稍后重试', 'error');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleDownload = () => {
@@ -141,7 +138,7 @@ export default function Home() {
         const filename = generateFilename(screenshotResult.originalUrl, screenshotResult.timestamp);
         downloadImage(screenshotResult.url, filename);
         showToast('下载成功！', 'success');
-      } catch (error) {
+      } catch {
         showToast('下载失败，请稍后重试', 'error');
       }
     }
@@ -152,7 +149,7 @@ export default function Home() {
       try {
         await navigator.clipboard.writeText(extractedWatermark.url);
         showToast('网址已复制到剪贴板', 'success');
-      } catch (error) {
+      } catch {
         showToast('复制失败', 'error');
       }
     }
@@ -332,6 +329,7 @@ export default function Home() {
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900 mb-4">快照预览</h4>
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={screenshotResult.url}
                         alt="Website Screenshot"

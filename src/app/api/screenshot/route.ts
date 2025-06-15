@@ -8,12 +8,10 @@ export async function POST(request: NextRequest) {
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
-    }
-
-    // 验证URL格式
+    }    // 验证URL格式
     try {
       new URL(url);
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
