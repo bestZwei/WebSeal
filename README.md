@@ -13,7 +13,7 @@ WebSeal 是一款专业的网页存证工具，采用先进的 LSB（最低有�
 - **📝 自定义文字**: 支持添加公司名称、证据编号等自定义信息
 - **🖼️ 高质量截图**: 基于 Puppeteer 的全页面截图功能
 - **🔍 水印提取**: 完整的水印信息提取和验证功能
-- **☁️ 云端部署**: 支持 Vercel 一键部署，无需本地环境
+- **🐳 服务器部署**: 支持 Docker 一键部署，数据完全自持
 - **📱 响应式设计**: 完美适配桌面端和移动端
 - **🚀 高性能**: 优化的算法确保快速处理
 
@@ -26,7 +26,7 @@ WebSeal 是一款专业的网页存证工具，采用先进的 LSB（最低有�
 - **图像处理**: Sharp
 - **水印算法**: LSB (Least Significant Bit) 隐写术
 - **UI 组件**: Radix UI + Lucide React
-- **部署平台**: Vercel
+- **部署方式**: Docker / 自托管服务器
 
 ## 🚀 快速开始
 
@@ -74,33 +74,45 @@ npm run build
 npm run start
 ```
 
-## 🌐 部署到 Vercel
+## 🌐 部署
 
-### 方法一：一键部署
+> 本项目仅支持服务器部署（Docker 或裸机运行），不支持 Vercel 等 Serverless 平台——因为 Puppeteer 需要完整的 Chrome 浏览器环境。
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/WebSeal)
+### Docker 部署（推荐）
 
-### 方法二：手动部署
+1. **使用 docker-compose 一键启动**
 
-1. **Fork 此项目到你的 GitHub 账户**
+```bash
+docker-compose up -d
+```
 
-2. **在 Vercel 中导入项目**
-   - 访问 [Vercel Dashboard](https://vercel.com/dashboard)
-   - 点击 "New Project"
-   - 选择你 Fork 的 WebSeal 项目
-   - 点击 "Deploy"
+2. **或手动构建镜像**
 
-3. **配置环境变量（可选）**
-   - 在 Vercel 项目设置中添加环境变量
-   - 目前项目无需额外环境变量即可运行
+```bash
+# 构建镜像
+npm run docker:build
 
-4. **部署完成**
-   - Vercel 会自动构建并部署你的应用
-   - 你将获得一个形如 `your-project.vercel.app` 的域名
+# 启动容器
+npm run docker:run
+```
 
-### 自定义域名
+3. **访问应用**
 
-在 Vercel 项目设置中的 "Domains" 部分可以添加自定义域名。
+打开浏览器访问 [http://localhost:3000](http://localhost:3000)
+
+### 裸机部署
+
+```bash
+# 构建项目
+npm run build
+
+# 启动生产服务器
+npm run start
+```
+
+> 注意：生产环境需要系统安装 Chrome/Chromium。Linux 服务器上 Puppeteer 默认查找 `/usr/bin/chromium-browser`。
+
+详细的部署说明（含环境变量、反向代理配置、故障排除）见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
 ## 📋 功能使用指南
 
@@ -246,7 +258,7 @@ WebSeal 采用 LSB（Least Significant Bit）算法实现盲水印：
 - **文件大小**: 上传图片最大 10MB
 - **网址要求**: 必须是有效的 HTTP/HTTPS 地址
 - **截图超时**: 单次截图最长 30 秒
-- **并发限制**: Vercel 免费版有并发限制
+- **系统要求**: 生产环境需安装 Chrome/Chromium（Docker 镜像已内置）
 
 ### 法律声明
 
@@ -272,8 +284,8 @@ A: 检查网址是否正确，确保目标网站可以正常访问，部分网�
 **Q: 水印提取失败？**
 A: 确保图片是通过 WebSeal 生成的，且没有经过大幅度压缩或格式转换。
 
-**Q: 部署到 Vercel 失败？**
-A: 检查 Node.js 版本是否符合要求，确保所有依赖正确安装。
+**Q: 部署失败？**
+A: 检查 Node.js 版本是否符合要求，确保所有依赖正确安装；生产环境需确认 Chrome/Chromium 已安装（推荐使用 Docker 部署，镜像内已内置）。
 
 **Q: 截图不完整？**
 A: 部分动态网页可能需要更长加载时间，可以尝试多次截图。
@@ -330,7 +342,6 @@ A: 部分动态网页可能需要更长加载时间，可以尝试多次截图�
 ## 📞 联系我们
 
 - **项目主页**: https://github.com/your-username/WebSeal
-- **在线演示**: https://webseal.vercel.app
 - **问题反馈**: https://github.com/your-username/WebSeal/issues
 
 ---

@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 REM WebSeal 项目部署脚本 (Windows)
 REM 使用方法: deploy.bat [platform]
-REM 支持的平台: vercel, docker, local
+REM 支持的平台: docker, local
 
 if "%1"=="" (
     call :show_help
@@ -16,9 +16,7 @@ echo 专业的网页存证工具 - 盲水印技术
 echo ============================================
 echo.
 
-if "%1"=="vercel" (
-    call :deploy_vercel
-) else if "%1"=="docker" (
+if "%1"=="docker" (
     call :deploy_docker
 ) else if "%1"=="local" (
     call :deploy_local
@@ -80,47 +78,6 @@ if errorlevel 1 (
 echo [SUCCESS] 类型检查通过
 goto :eof
 
-:deploy_vercel
-call :check_dependencies
-call :install_dependencies
-call :build_project
-call :run_tests
-
-echo [INFO] 准备 Vercel 部署...
-
-vercel --version >nul 2>&1
-if errorlevel 1 (
-    echo [WARNING] Vercel CLI 未安装，正在安装...
-    npm install -g vercel
-    if errorlevel 1 (
-        echo [ERROR] Vercel CLI 安装失败
-        exit /b 1
-    )
-)
-
-echo [INFO] 检查 vercel.json 配置...
-if not exist vercel.json (
-    echo [ERROR] vercel.json 配置文件不存在
-    exit /b 1
-)
-
-echo [INFO] 开始部署到 Vercel...
-echo [INFO] 注意：首次部署需要登录并配置项目
-vercel --prod
-if errorlevel 1 (
-    echo [ERROR] Vercel 部署失败
-    echo [INFO] 请检查：
-    echo   1. 是否已登录 Vercel CLI (vercel login)
-    echo   2. 项目配置是否正确
-    echo   3. vercel.json 格式是否有效
-    exit /b 1
-)
-
-echo [SUCCESS] Vercel 部署完成！
-echo [INFO] 检查部署状态：vercel ls
-echo [INFO] 查看项目日志：vercel logs
-goto :eof
-
 :deploy_docker
 call :check_dependencies
 call :install_dependencies
@@ -167,13 +124,11 @@ echo 使用方法:
 echo   %0 [platform]
 echo.
 echo 支持的平台:
-echo   vercel  - 部署到 Vercel 平台
 echo   docker  - 使用 Docker 部署
 echo   local   - 本地开发模式
 echo   help    - 显示此帮助信息
 echo.
 echo 示例:
-echo   %0 vercel   # 部署到 Vercel
 echo   %0 docker   # Docker 部署
 echo   %0 local    # 本地开发
 goto :eof

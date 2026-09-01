@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+.mimosa/
 
 # next.js
 /.next/

@@ -1,231 +1,46 @@
 # WebSeal 部署指南
 
-本文档详细介绍如何部署 WebSeal 到不同的平台。
+本文档介绍如何将 WebSeal 部署到自己的服务器。
 
-## 🚀 Vercel 部署（推荐）
+> ⚠️ **本项目仅支持服务器部署**（Docker 或裸机运行），不支持 Vercel、Netlify 等 Serverless 平台——截图功能依赖 Puppeteer，需要完整的 Chrome/Chromium 浏览器环境。
 
-Vercel 是最简单的部署方案，特别适合 Next.js 应用。
+## 🐳 Docker 部署（推荐）
 
-### 方法一：一键部署
+Docker 镜像已内置 Chromium 及全部字体依赖，开箱即用。
 
-1. 点击下方按钮一键部署：
+### 使用 docker-compose 一键启动
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/WebSeal)
-
-2. 登录或注册 Vercel 账户
-3. 授权访问 GitHub（如果需要）
-4. 项目会自动 Fork 到你的 GitHub 账户
-5. Vercel 会自动构建和部署
-
-### 方法二：从 GitHub 导入
-
-1. **准备项目**
-   ```bash
-   # Fork 项目到你的 GitHub 账户
-   # 或者克隆并推送到你的仓库
-   git clone https://github.com/your-username/WebSeal.git
-   cd WebSeal
-   git remote set-url origin https://github.com/your-username/WebSeal.git
-   git push -u origin main
-   ```
-
-2. **在 Vercel 中导入**
-   - 访问 [Vercel Dashboard](https://vercel.com/dashboard)
-   - 点击 "New Project"
-   - 从 GitHub 选择 WebSeal 项目
-   - 保持默认配置，点击 "Deploy"
-
-3. **配置域名**
-   - 部署完成后会获得一个 `.vercel.app` 域名
-   - 可以在项目设置中添加自定义域名
-
-### Vercel 配置优化
-
-在项目根目录的 `vercel.json` 已经包含了优化配置：
-
-```json
-{
-  "version": 2,
-  "name": "webseal",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "src/app/api/screenshot/route.ts": {
-      "maxDuration": 30
-    },
-    "src/app/api/extract-watermark/route.ts": {
-      "maxDuration": 30
-    }
-  }
-}
+```bash
+docker-compose up -d
 ```
 
-### Vercel 部署注意事项
+### 或手动构建和运行
 
-1. **函数超时配置**
-   
-   WebSeal 项目已经配置了适当的函数超时时间：
-   ```json
-   {
-     "functions": {
-       "src/app/api/screenshot/route.ts": {
-         "maxDuration": 30
-       },
-       "src/app/api/extract-watermark/route.ts": {
-         "maxDuration": 30
-       }
-     }
-   }
-   ```
+```bash
+# 构建镜像
+docker build -t webseal:latest .
 
-2. **Puppeteer 配置**
-   
-   Vercel 环境中 Puppeteer 需要特殊配置：
-   ```javascript
-   const browser = await puppeteer.launch({
-     args: [
-       '--no-sandbox',
-       '--disable-setuid-sandbox',
-       '--disable-dev-shm-usage',
-       '--disable-accelerated-2d-canvas',
-       '--no-first-run',
-       '--no-zygote',
-       '--single-process',
-       '--disable-gpu'
-     ]
-   });
-   ```
+# 运行容器
+docker run -d -p 3000:3000 --name webseal-container webseal:latest
 
-3. **内存限制**
-   
-   由于 Puppeteer 需要较多内存，建议：
-   - 使用 Vercel Pro 计划获得更多内存
-   - 优化截图参数减少内存使用
-   - 监控函数执行时间和内存使用
-
-### 常见 Vercel 部署问题
-
-#### 问题1：函数超时
-```
-Error: Task timed out after 10.00 seconds
+# 查看日志
+docker logs -f webseal-container
 ```
 
-**解决方案：**
-- 确保 `vercel.json` 中设置了正确的 `maxDuration`
-- 检查目标网站是否响应缓慢
-- 考虑使用 Vercel Pro 计划
+也可以使用 npm 封装的快捷命令：
 
-#### 问题2：内存不足
-```
-Error: Process out of memory
-```
-
-**解决方案：**
-- 升级到 Vercel Pro 计划
-- 优化 Puppeteer 启动参数
-- 减少并发请求数量
-
-#### 问题3：配置文件错误
-```
-The `functions` property cannot be used in conjunction with the `builds` property
+```bash
+npm run docker:build
+npm run docker:run
+npm run docker:logs
+npm run compose:up
 ```
 
-**解决方案：**
-- 移除 `builds` 属性，只保留 `functions`
-- 使用简化的 `vercel.json` 配置
-- 让 Vercel 自动检测 Next.js 项目
+启动后访问 [http://localhost:3000](http://localhost:3000)。
 
-## 🐳 Docker 部署
-
-### 创建 Dockerfile
-
-在项目根目录创建 `Dockerfile`：
-
-```dockerfile
-# 使用官方 Node.js 镜像
-FROM node:18-alpine AS base
-
-# 安装依赖
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-# 复制 package 文件
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-# 构建应用
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# 安装 Chrome 依赖（用于 Puppeteer）
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-# 设置 Puppeteer 使用系统 Chrome
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
-RUN npm run build
-
-# 生产镜像
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# 安装 Chrome 依赖
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
-```
-
-### 创建 Docker Compose
-
-创建 `docker-compose.yml`：
+### docker-compose.yml 说明
 
 ```yaml
-version: '3.8'
-
 services:
   webseal:
     build: .
@@ -234,283 +49,121 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    mem_limit: 1g
+    mem_limit: 1g        # Puppeteer 截图比较吃内存，建议至少 1g
     mem_reservation: 512m
+    shm_size: 256m       # Chrome 需要足够的 /dev/shm
 ```
 
-### 构建和运行
+## 🖥️ 裸机部署
+
+不使用 Docker 时，需要自行安装 Chrome/Chromium。
+
+### 1. 安装 Chromium
 
 ```bash
-# 构建镜像
-docker build -t webseal .
+# Debian / Ubuntu
+sudo apt-get install -y chromium-browser
 
-# 运行容器
-docker run -p 3000:3000 webseal
-
-# 或使用 Docker Compose
-docker-compose up -d
+# CentOS / RHEL
+sudo yum install -y chromium
 ```
 
-## ☁️ 其他云平台部署
+### 2. 构建和启动
 
-### Railway
+```bash
+npm ci
+npm run build
+npm run start
+```
 
-1. 连接 GitHub 仓库到 Railway
-2. Railway 会自动检测 Next.js 项目
-3. 部署会自动开始
-
-### Netlify
-
-1. 在 Netlify 中连接 GitHub 仓库
-2. 设置构建命令：`npm run build`
-3. 设置发布目录：`.next`
-4. 注意：Netlify 不支持 API 路由，需要使用 Netlify Functions
-
-### Heroku
-
-1. 创建 `Procfile`：
-   ```
-   web: npm start
-   ```
-
-2. 添加 Heroku Buildpack：
-   ```bash
-   heroku buildpacks:add heroku/nodejs
-   heroku buildpacks:add jontewks/puppeteer
-   ```
-
-3. 部署：
-   ```bash
-   git push heroku main
-   ```
+> Linux 生产环境下 Puppeteer 默认查找 `/usr/bin/chromium-browser`。如果 Chromium 安装在其它路径，请设置 `PUPPETEER_EXECUTABLE_PATH` 环境变量。
 
 ## 🛠️ 环境变量配置
 
-### 可选环境变量
-
-```bash
-# Node.js 环境
-NODE_ENV=production
-
-# 端口配置
-PORT=3000
-
-# 自定义域名（用于元数据）
-NEXT_PUBLIC_BASE_URL=https://your-domain.com
-
-# Puppeteer 配置
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-```
-
-### Vercel 环境变量设置
-
-1. 进入 Vercel 项目设置
-2. 点击 "Environment Variables"
-3. 添加需要的环境变量
-4. 重新部署项目
-
-## 🔧 性能优化
-
-### 1. 图像优化
-
-```javascript
-// next.config.ts
-const nextConfig = {
-  images: {
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-  },
-  compress: true,
-};
-```
-
-### 2. Bundle 分析
-
-```bash
-# 安装分析工具
-npm install --save-dev @next/bundle-analyzer
-
-# 运行分析
-ANALYZE=true npm run build
-```
-
-### 3. 缓存配置
-
-```javascript
-// 在 API 路由中添加缓存头
-export async function GET() {
-  return NextResponse.json(data, {
-    headers: {
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-    },
-  });
-}
-```
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `NODE_ENV` | `development` | 设为 `production` 启用生产模式（影响 Puppeteer 的 Chromium 路径查找） |
+| `PORT` | `3000` | 服务监听端口 |
+| `HOSTNAME` | `0.0.0.0` | 服务监听地址 |
+| `PUPPETEER_EXECUTABLE_PATH` | 自动查找 | Chromium 可执行文件路径 |
+| `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` | `false` | 跳过 Puppeteer 自带 Chrome 下载（使用系统 Chromium 时设为 `true`） |
+| `SCREENSHOT_TIMEOUT` | `45000` | 截图超时时间（毫秒） |
 
 ## 🔒 安全配置
 
-### 1. 内容安全策略
+WebSeal 的截图接口会向任意 URL 发起浏览器请求，公网部署时务必注意：
 
-```javascript
-// next.config.ts
-const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
-    ];
-  },
-};
+1. **不要暴露在公网不设防**：建议加上认证（如反向代理层 Basic Auth）或仅部署在内网/VPN 中使用。
+2. **配置反向代理限流**：示例（Nginx）：
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # 截图接口耗时较长，放宽超时
+        proxy_read_timeout 120s;
+    }
+}
 ```
 
-### 2. Rate Limiting
-
-```typescript
-// 可以添加速率限制中间件
-import rateLimit from 'express-rate-limit';
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 分钟
-  max: 10, // 限制每个 IP 10 次请求
-});
-```
-
-## 📊 监控和日志
-
-### 1. Vercel Analytics
-
-在 Vercel 项目中启用 Analytics 功能。
-
-### 2. 错误监控
-
-```typescript
-// 可以集成 Sentry 等错误监控服务
-import * as Sentry from '@sentry/nextjs';
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-});
-```
-
-### 3. 日志记录
-
-```typescript
-// 添加结构化日志
-const logger = {
-  info: (message: string, data?: any) => {
-    console.log(JSON.stringify({ level: 'info', message, data, timestamp: new Date().toISOString() }));
-  },
-  error: (message: string, error?: any) => {
-    console.error(JSON.stringify({ level: 'error', message, error: error?.message, timestamp: new Date().toISOString() }));
-  },
-};
-```
+3. **内存与并发**：每次截图都会启动一个 Chrome 实例，建议通过容器 `mem_limit` 或系统层面控制并发，避免高并发打爆内存。
 
 ## 🚨 故障排除
 
-### 常见部署问题
+### Puppeteer 无法启动
 
-1. **Puppeteer 无法启动**
-   - 确保安装了所需的系统依赖
-   - 检查 Chrome/Chromium 是否正确配置
+```
+Failed to launch the browser process
+```
 
-2. **内存不足**
-   - 增加容器内存限制
-   - 优化 Puppeteer 参数
+- Docker：确认使用的是项目自带 Dockerfile（已内置 chromium 及字体依赖）。
+- 裸机：确认已安装 Chromium，路径正确（`/usr/bin/chromium-browser` 或通过 `PUPPETEER_EXECUTABLE_PATH` 指定）。
+- Linux 下以 root 运行时需要 `--no-sandbox`（项目已默认带上）。
 
-3. **构建超时**
-   - 检查依赖安装是否有问题
-   - 增加构建超时时间
+### 内存不足（OOM）
 
-4. **API 路由超时**
-   - 检查 Vercel 函数超时配置
-   - 优化截图逻辑
+- 增加 Docker `mem_limit`，或在 docker-compose 中加大 `shm_size`。
+- 减少并发截图请求数量。
+
+### 截图超时
+
+- 目标网站响应缓慢时会触发超时，可调整 `SCREENSHOT_TIMEOUT`。
+- 通过 `/api/health` 检查浏览器环境是否正常：
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+### 中文显示为方块
+
+Docker 镜像已内置 `ttf-freefont` 和 `font-noto-emoji`。裸机部署时如截图中文乱码，安装中文字体：
+
+```bash
+# Debian / Ubuntu
+sudo apt-get install -y fonts-noto-cjk
+```
 
 ### 调试命令
 
 ```bash
-# 本地调试构建
-npm run build
-npm start
+# 查看容器日志
+docker logs -f webseal-container
 
 # 检查依赖
 npm audit
 npm outdated
 
-# 清理缓存
-rm -rf .next
-rm -rf node_modules
-npm install
-```
-
-## 📱 移动端优化
-
-### PWA 配置
-
-```json
-// public/manifest.json
-{
-  "name": "WebSeal",
-  "short_name": "WebSeal",
-  "description": "专业的网页存证工具",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
-  "icons": [
-    {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    }
-  ]
-}
-```
-
-## 📈 SEO 优化
-
-### Meta 标签配置
-
-项目已经包含了完整的 SEO 配置，包括：
-
-- Open Graph 标签
-- Twitter Card 标签
-- 结构化数据
-- 网站地图
-
-### 网站地图生成
-
-```typescript
-// 可以添加动态网站地图生成
-export default function sitemap() {
-  return [
-    {
-      url: 'https://webseal.vercel.app',
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-  ];
-}
+# 清理缓存重新构建
+rm -rf .next node_modules
+npm ci
+npm run build
 ```
 
 ---
 
-完成部署后，你的 WebSeal 应用就可以为用户提供专业的网页存证服务了！ 🚀
+完成部署后，你的 WebSeal 实例就可以提供网页存证服务了！ 🚀

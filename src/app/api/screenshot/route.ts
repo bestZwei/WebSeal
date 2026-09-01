@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       try {
         await page.waitForFunction(() => document.readyState === 'complete', { timeout: 10000 });
         console.log('Page load state completed');
-      } catch (loadStateTimeout) {
+      } catch {
         console.log('Page load state timeout, proceeding with screenshot');
       }
       

@@ -132,31 +132,29 @@ export async function extractWatermark(imageBuffer: Buffer): Promise<WatermarkDa
 }
 
 /**
- * 将文本转换为二进制字符串
+ * 将文本转换为二进制字符串（UTF-8 编码，支持中文等多字节字符）
  */
 function textToBinary(text: string): string {
-  return text
-    .split('')
-    .map(char => char.charCodeAt(0).toString(2).padStart(8, '0'))
+  return Array.from(Buffer.from(text, 'utf8'))
+    .map(byte => byte.toString(2).padStart(8, '0'))
     .join('');
 }
 
 /**
- * 将二进制字符串转换为文本
+ * 将二进制字符串转换为文本（UTF-8 解码）
  */
 function binaryToText(binary: string): string {
   // 确保二进制字符串长度是8的倍数
   const paddedBinary = binary.padEnd(Math.ceil(binary.length / 8) * 8, '0');
-  
-  let text = '';
+
+  const bytes: number[] = [];
   for (let i = 0; i < paddedBinary.length; i += 8) {
-    const byte = paddedBinary.slice(i, i + 8);
-    const charCode = parseInt(byte, 2);
-    if (charCode > 0) { // 忽略空字符
-      text += String.fromCharCode(charCode);
+    const byte = parseInt(paddedBinary.slice(i, i + 8), 2);
+    if (byte > 0) { // 忽略填充的空字节
+      bytes.push(byte);
     }
   }
-  return text;
+  return Buffer.from(bytes).toString('utf8');
 }
 
 /**

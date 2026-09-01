@@ -29,8 +29,7 @@ RUN apk add --no-cache \
 
 # 设置 Puppeteer 环境变量
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    DOCKER_BUILD=true
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # 构建应用
 RUN npm run build

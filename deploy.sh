@@ -2,7 +2,7 @@
 
 # WebSeal 项目部署脚本
 # 使用方法: ./deploy.sh [platform]
-# 支持的平台: vercel, docker, local
+# 支持的平台: docker, local
 
 set -e
 
@@ -75,51 +75,6 @@ run_tests() {
     print_success "类型检查通过"
 }
 
-# Vercel 部署
-deploy_vercel() {
-    print_status "准备 Vercel 部署..."
-    
-    if ! command -v vercel &> /dev/null; then
-        print_warning "Vercel CLI 未安装，正在安装..."
-        npm install -g vercel
-        if [ $? -ne 0 ]; then
-            print_error "Vercel CLI 安装失败"
-            exit 1
-        fi
-    fi
-    
-    print_status "检查 vercel.json 配置..."
-    if [ ! -f "vercel.json" ]; then
-        print_error "vercel.json 配置文件不存在"
-        exit 1
-    fi
-    
-    # 验证 JSON 格式
-    if ! python -m json.tool vercel.json > /dev/null 2>&1; then
-        if ! node -e "JSON.parse(require('fs').readFileSync('vercel.json', 'utf8'))" > /dev/null 2>&1; then
-            print_error "vercel.json 格式无效"
-            exit 1
-        fi
-    fi
-    
-    print_status "开始部署到 Vercel..."
-    print_warning "注意：首次部署需要登录并配置项目"
-    
-    vercel --prod
-    if [ $? -ne 0 ]; then
-        print_error "Vercel 部署失败"
-        print_status "请检查："
-        echo "  1. 是否已登录 Vercel CLI (vercel login)"
-        echo "  2. 项目配置是否正确"
-        echo "  3. vercel.json 格式是否有效"
-        exit 1
-    fi
-    
-    print_success "Vercel 部署完成！"
-    print_status "检查部署状态：vercel ls"
-    print_status "查看项目日志：vercel logs"
-}
-
 # Docker 部署
 deploy_docker() {
     print_status "准备 Docker 部署..."
@@ -152,13 +107,11 @@ show_help() {
     echo "  $0 [platform]"
     echo ""
     echo "支持的平台:"
-    echo "  vercel  - 部署到 Vercel 平台"
     echo "  docker  - 使用 Docker 部署"
     echo "  local   - 本地开发模式"
     echo "  help    - 显示此帮助信息"
     echo ""
     echo "示例:"
-    echo "  $0 vercel   # 部署到 Vercel"
     echo "  $0 docker   # Docker 部署"
     echo "  $0 local    # 本地开发"
 }
@@ -179,13 +132,6 @@ main() {
     fi
     
     case $1 in
-        "vercel")
-            check_dependencies
-            install_dependencies
-            build_project
-            run_tests
-            deploy_vercel
-            ;;
         "docker")
             check_dependencies
             install_dependencies

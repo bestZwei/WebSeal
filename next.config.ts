@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 根据部署环境选择输出模式
-  // Vercel 部署时不需要 standalone
-  // Docker 部署时需要 standalone
-  ...(process.env.DOCKER_BUILD === 'true' && { output: 'standalone' }),
+  // 本项目仅支持服务器部署（Docker / 裸机），standalone 输出用于 Docker 镜像
+  output: 'standalone',
   
   // 图像优化配置
   images: {

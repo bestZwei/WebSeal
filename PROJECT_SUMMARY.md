@@ -36,7 +36,6 @@ WebSeal/
 ├── tailwind.config.ts            # Tailwind CSS 配置
 ├── tsconfig.json                 # TypeScript 配置
 ├── package.json                  # 项目依赖和脚本
-├── vercel.json                   # Vercel 部署配置
 └── README.md                     # 项目说明文档
 ```
 
@@ -84,10 +83,8 @@ WebSeal/
 - **Watermark Algorithm**: Custom LSB Implementation
 
 ### 部署支持
-- **Vercel**: 一键部署，无服务器函数
-- **Docker**: 容器化部署
+- **Docker**: 容器化部署（推荐，仅支持服务器部署）
 - **Local**: 本地开发环境
-- **其他平台**: Railway, Netlify, Heroku
 
 ## 📈 性能优化
 
@@ -167,16 +164,9 @@ WebSeal/
 
 ## 🚀 部署选项
 
-### 1. Vercel 部署（推荐）
-```bash
-# 一键部署
-vercel --prod
+> 本项目仅支持服务器部署（Docker / 裸机），不支持 Vercel 等 Serverless 平台。
 
-# 或使用脚本
-./deploy.sh vercel
-```
-
-### 2. Docker 部署
+### 1. Docker 部署（推荐）
 ```bash
 # 构建镜像
 docker build -t webseal:latest .
@@ -188,7 +178,7 @@ docker run -d -p 3000:3000 webseal:latest
 docker-compose up -d
 ```
 
-### 3. 本地开发
+### 2. 本地开发
 ```bash
 # 安装依赖
 npm install
@@ -208,7 +198,7 @@ npm run dev
 - [x] 错误处理和用户反馈
 - [x] API 接口完整实现
 - [x] TypeScript 类型定义
-- [x] 部署配置（Vercel/Docker）
+- [x] 部署配置（Docker / 裸机服务器）
 - [x] 项目文档编写
 - [x] 健康检查接口
 - [x] 安全头配置

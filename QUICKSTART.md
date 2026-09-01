@@ -23,16 +23,9 @@ npm run dev
 4. **访问应用**
 打开浏览器访问: http://localhost:3000
 
-### 方法二：一键部署到 Vercel（推荐部署）
+### 方法二：Docker 部署（推荐生产环境）
 
-1. **点击部署按钮**
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/WebSeal)
-
-2. **登录 Vercel 账户**（免费注册）
-
-3. **确认部署**，几分钟后获得在线地址
-
-### 方法三：Docker 部署（推荐生产环境）
+> 本项目仅支持服务器部署（Docker / 裸机），不支持 Vercel 等 Serverless 平台。
 
 1. **确保已安装 Docker**
 
@@ -73,9 +66,6 @@ A: 检查网址是否正确，确保目标网站可访问
 
 **Q: Docker 启动失败**
 A: 确保 Docker 服务正在运行，端口3000未被占用
-
-**Q: Vercel 部署失败**
-A: 检查 GitHub 仓库是否公开，确保所有文件已提交
 
 ### 获取帮助
 
