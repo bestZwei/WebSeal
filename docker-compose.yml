@@ -11,6 +11,9 @@ services:
       - NODE_ENV=production
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+      # 水印签名密钥（生成方式: node scripts/generate-keys.mjs），取消注释并填入 PEM 内容
+      # - WEBSEAL_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----...
+      # - WEBSEAL_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
     restart: unless-stopped
     mem_limit: 1g
     mem_reservation: 512m

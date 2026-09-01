@@ -12,7 +12,14 @@ export async function GET() {
     let chromiumError: string | null = null;
 
     try {
-      chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+      chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH
+        || (process.platform === 'win32' ? null : '/usr/bin/chromium-browser');
+      if (!chromiumPath) {
+        // Windows 开发环境没有固定的 Chromium 安装路径，Chrome 位于 Puppeteer 用户缓存目录，
+        // 懒加载 puppeteer 获取其记录的路径（仅此分支需要引入该依赖）
+        const { default: puppeteer } = await import('puppeteer');
+        chromiumPath = puppeteer.executablePath();
+      }
       fs.accessSync(chromiumPath, fs.constants.X_OK);
       chromiumOk = true;
     } catch (error) {

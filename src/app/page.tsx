@@ -7,11 +7,13 @@ import {
   Upload,
   Eye,
   Shield,
+  ShieldAlert,
   Zap,
   Clock,
   Archive,
   ExternalLink,
   CheckCircle,
+  XCircle,
   Loader2,
   Copy,
   Globe
@@ -27,11 +29,15 @@ export default function Home() {
     timestamp: string;
     originalUrl: string;
     customText: string;
+    signed: boolean;
   } | null>(null);
   const [extractedWatermark, setExtractedWatermark] = useState<{
     timestamp: string;
     customText: string;
     url: string;
+    watermarkVersion: string;
+    signed: boolean;
+    signatureVerified: boolean | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'capture' | 'extract'>('capture');
@@ -70,6 +76,7 @@ export default function Home() {
           timestamp: result.timestamp,
           originalUrl: result.originalUrl,
           customText: result.customText || '',
+          signed: result.signed ?? false,
         });
         showToast('网页快照生成成功！', 'success');
       } else {
@@ -118,6 +125,9 @@ export default function Home() {
           timestamp: result.timestamp,
           customText: result.customText,
           url: result.url,
+          watermarkVersion: result.watermarkVersion ?? '1.0',
+          signed: result.signed ?? false,
+          signatureVerified: result.signatureVerified ?? null,
         });
         showToast('水印提取成功！', 'success');
       } else {
@@ -353,7 +363,9 @@ export default function Home() {
                         <Shield className="h-5 w-5 text-green-600" />
                         <div>
                           <p className="text-sm font-medium text-gray-900">水印状态</p>
-                          <p className="text-sm text-gray-600">已嵌入盲水印</p>
+                          <p className="text-sm text-gray-600">
+                            {screenshotResult.signed ? '已嵌入盲水印（已签名）' : '已嵌入盲水印（未签名）'}
+                          </p>
                         </div>
                       </div>
 
@@ -488,13 +500,43 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-center p-8 bg-green-50 rounded-lg">
+                  <div className={`flex items-center justify-center p-8 rounded-lg ${
+                    extractedWatermark.signatureVerified === false ? 'bg-red-50' : 'bg-green-50'
+                  }`}>
                     <div className="text-center">
-                      <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                      <p className="text-xl font-bold text-gray-900 mb-2">验证通过</p>
-                      <p className="text-gray-600">
-                        图片包含有效的盲水印信息
-                      </p>
+                      {extractedWatermark.signatureVerified === false ? (
+                        <>
+                          <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
+                          <p className="text-xl font-bold text-gray-900 mb-2">签名验证失败</p>
+                          <p className="text-gray-600">
+                            水印信息与签名不匹配，可能已被篡改或系伪造，请勿采信
+                          </p>
+                        </>
+                      ) : extractedWatermark.signed && extractedWatermark.signatureVerified === true ? (
+                        <>
+                          <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                          <p className="text-xl font-bold text-gray-900 mb-2">验证通过</p>
+                          <p className="text-gray-600">
+                            水印签名验证通过：图片由本服务签发，水印内容未被篡改
+                          </p>
+                        </>
+                      ) : extractedWatermark.signed ? (
+                        <>
+                          <ShieldAlert className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                          <p className="text-xl font-bold text-gray-900 mb-2">签名无法判定</p>
+                          <p className="text-gray-600">
+                            图片携带签名，但本服务未配置验证公钥（WEBSEAL_PUBLIC_KEY），无法验证
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                          <p className="text-xl font-bold text-gray-900 mb-2">提取成功（未签名）</p>
+                          <p className="text-gray-600">
+                            图片包含有效的盲水印信息，但水印未经签名，无法验证签发来源
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

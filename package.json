@@ -3,7 +3,14 @@
   "version": "1.0.0",
   "description": "专业的网页存证工具 - 使用盲水印技术为网页快照添加时间戳和自定义文字水印",
   "private": true,
-  "keywords": ["web", "screenshot", "watermark", "evidence", "archive", "steganography"],
+  "keywords": [
+    "web",
+    "screenshot",
+    "watermark",
+    "evidence",
+    "archive",
+    "steganography"
+  ],
   "author": "WebSeal Team",
   "license": "MIT",
   "scripts": {
@@ -11,6 +18,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "tsx scripts/test-watermark.mjs && tsx scripts/test-url-guard.mjs",
     "type-check": "tsc --noEmit",
     "docker:build": "docker build -t webseal:latest .",
     "docker:run": "docker run -d -p 3000:3000 --name webseal-container webseal:latest",
@@ -37,6 +45,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

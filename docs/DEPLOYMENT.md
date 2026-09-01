@@ -88,6 +88,19 @@ npm run start
 | `PUPPETEER_EXECUTABLE_PATH` | 自动查找 | Chromium 可执行文件路径 |
 | `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` | `false` | 跳过 Puppeteer 自带 Chrome 下载（使用系统 Chromium 时设为 `true`） |
 | `SCREENSHOT_TIMEOUT` | `45000` | 截图超时时间（毫秒） |
+| `WEBSEAL_PRIVATE_KEY` | 未配置 | Ed25519 签名私钥（PKCS8 PEM）。不配置时水印以未签名模式嵌入 |
+| `WEBSEAL_PUBLIC_KEY` | 自动推导 | Ed25519 验证公钥（SPKI PEM），省略时从私钥推导 |
+
+### 签名密钥配置
+
+水印签名能让验证方确认"快照由本服务签发且未被篡改"，生产环境建议开启：
+
+```bash
+# 生成密钥对（输出私钥/公钥 PEM 与公钥指纹）
+node scripts/generate-keys.mjs
+```
+
+将输出的 `WEBSEAL_PRIVATE_KEY` / `WEBSEAL_PUBLIC_KEY` 配置到运行环境。私钥务必妥善保管（泄露后需轮换密钥），不要提交到代码库。公钥指纹可通过 `GET /api/public-key` 查询，建议同时公示在其它渠道以便核对。
 
 ## 🔒 安全配置
 

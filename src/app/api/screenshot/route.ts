@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puppeteer, { type LaunchOptions } from 'puppeteer';
-import { addWatermark } from '@/lib/watermark';
+import { addWatermark, canonicalPayload } from '@/lib/watermark';
+import { signPayload } from '@/lib/signature';
 import { checkPublicHttpUrl, checkPublicHttpUrlWithDns, isPrivateHostname } from '@/lib/url-guard';
 import { logger, logSafeHost } from '@/lib/logger';
 
@@ -135,10 +136,16 @@ export async function POST(request: NextRequest) {
 
       const timestamp = new Date().toISOString();
 
+      // 对水印内容签名（未配置 WEBSEAL_PRIVATE_KEY 时退化为未签名模式）
+      const signature = signPayload(
+        canonicalPayload({ timestamp, customText: customText || '', url })
+      );
+
       const watermarkedImage = await addWatermark(Buffer.from(screenshot), {
         timestamp,
         customText: customText || '',
         url,
+        signature,
       });
 
       const base64Image = `data:image/png;base64,${watermarkedImage.toString('base64')}`;
@@ -149,6 +156,7 @@ export async function POST(request: NextRequest) {
         timestamp,
         originalUrl: url,
         customText: customText || '',
+        signed: !!signature,
       });
     } catch (pageError) {
       // 确保浏览器被关闭，避免进程泄漏

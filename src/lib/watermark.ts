@@ -1,25 +1,50 @@
 import sharp from 'sharp';
+import { verifyPayload } from './signature';
 
-interface WatermarkData {
+export interface WatermarkPayload {
   timestamp: string;
   customText: string;
   url: string;
 }
 
+export interface EmbeddedWatermark extends WatermarkPayload {
+  signature?: string | null;
+}
+
+export interface ExtractedWatermark extends WatermarkPayload {
+  version: string;
+  /** 水印是否携带签名（v1.0 旧格式或未配置密钥时为 false） */
+  signed: boolean;
+  /** 签名验证结果：true 通过 / false 被篡改或伪造 / null 无法判定（服务未配置公钥） */
+  signatureVerified: boolean | null;
+}
+
+/**
+ * 构造参与签名的规范 payload。签名与验签双方必须使用完全相同的字节序列，
+ * 因此固定字段顺序序列化，禁止直接 JSON.parse 后再 stringify 的松散比较。
+ */
+export function canonicalPayload(data: WatermarkPayload): Buffer {
+  return Buffer.from(
+    JSON.stringify({ timestamp: data.timestamp, customText: data.customText, url: data.url }),
+    'utf8'
+  );
+}
+
 /**
  * 使用LSB算法嵌入盲水印到图像中
  * @param imageBuffer 原始图像buffer
- * @param data 要嵌入的水印数据
+ * @param data 要嵌入的水印数据（signature 为 base64 签名，null/undefined 表示未签名模式）
  * @returns 包含水印的图像buffer
  */
-export async function addWatermark(imageBuffer: Buffer, data: WatermarkData): Promise<Buffer> {
+export async function addWatermark(imageBuffer: Buffer, data: EmbeddedWatermark): Promise<Buffer> {
   try {
     // 准备水印数据
     const watermarkText = JSON.stringify({
+      version: '2.0',
       timestamp: data.timestamp,
       customText: data.customText,
       url: data.url,
-      version: '1.0'
+      signature: data.signature ?? null
     });
 
     // 将文本转换为二进制
@@ -76,9 +101,9 @@ export async function addWatermark(imageBuffer: Buffer, data: WatermarkData): Pr
 /**
  * 从图像中提取盲水印
  * @param imageBuffer 包含水印的图像buffer
- * @returns 提取的水印数据
+ * @returns 提取的水印数据（含签名验证结果），无有效水印时返回 null
  */
-export async function extractWatermark(imageBuffer: Buffer): Promise<WatermarkData | null> {
+export async function extractWatermark(imageBuffer: Buffer): Promise<ExtractedWatermark | null> {
   try {
     const { data: pixelData, info } = await sharp(imageBuffer)
       .raw()
@@ -115,11 +140,23 @@ export async function extractWatermark(imageBuffer: Buffer): Promise<WatermarkDa
     const watermarkText = binaryToText(binaryData);
     
     try {
-      const watermarkData = JSON.parse(watermarkText) as WatermarkData & { version: string };
+      const parsed = JSON.parse(watermarkText) as WatermarkPayload & {
+        version?: string;
+        signature?: string | null;
+      };
+      const payload: WatermarkPayload = {
+        timestamp: parsed.timestamp,
+        customText: parsed.customText,
+        url: parsed.url
+      };
+
+      // v1.0 旧格式无签名字段；signature 为 null 表示未配置密钥时的未签名模式
+      const signed = typeof parsed.signature === 'string' && parsed.signature.length > 0;
       return {
-        timestamp: watermarkData.timestamp,
-        customText: watermarkData.customText,
-        url: watermarkData.url
+        ...payload,
+        version: parsed.version ?? '1.0',
+        signed,
+        signatureVerified: signed ? verifyPayload(canonicalPayload(payload), parsed.signature!) : null
       };
     } catch (parseError) {
       console.error('Failed to parse watermark data:', parseError);

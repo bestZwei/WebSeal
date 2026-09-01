@@ -66,6 +66,10 @@ export async function POST(request: NextRequest) {
       timestamp: watermarkData.timestamp,
       customText: watermarkData.customText,
       url: watermarkData.url,
+      watermarkVersion: watermarkData.version,
+      signed: watermarkData.signed,
+      // true=签名验证通过；false=水印被篡改或伪造；null=服务未配置公钥无法判定
+      signatureVerified: watermarkData.signatureVerified,
       extractedAt: new Date().toISOString(),
     });
   } catch (error) {

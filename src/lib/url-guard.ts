@@ -85,6 +85,10 @@ export function isPrivateHostname(hostname: string): boolean {
   if (LOCAL_HOSTNAMES.has(h)) return true;
   if (LOCAL_SUFFIXES.some(suffix => h.endsWith(suffix))) return true;
 
+  // 仅对 IP 字面量做地址段判断；普通域名不是"私有主机名"，
+  // 其安全性由 checkPublicHttpUrlWithDns 的 DNS 解析校验保证
+  if (net.isIP(h) === 0) return false;
+
   return isBlockedIp(h);
 }
 

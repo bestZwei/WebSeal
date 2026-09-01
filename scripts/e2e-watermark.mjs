@@ -24,5 +24,7 @@ const ok = extracted.success === true &&
   extracted.customText === customText &&
   extracted.url === 'https://example.com' &&
   extracted.timestamp === shot.timestamp;
-console.log(ok ? 'E2E PASS' : 'E2E FAIL');
-process.exit(ok ? 0 : 1);
+console.log('signature status: signed =', extracted.signed, ', verified =', extracted.signatureVerified);
+const sigOk = extracted.signed ? extracted.signatureVerified === true : true;
+console.log(ok && sigOk ? 'E2E PASS' : 'E2E FAIL');
+process.exit(ok && sigOk ? 0 : 1);
