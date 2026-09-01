@@ -1,28 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puppeteer, { type LaunchOptions } from 'puppeteer';
 import { addWatermark } from '@/lib/watermark';
+import { checkPublicHttpUrl, checkPublicHttpUrlWithDns, isPrivateHostname } from '@/lib/url-guard';
+import { logger, logSafeHost } from '@/lib/logger';
+
+const CHROMIUM_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
+
+// 子资源请求允许的无网络协议（data:/blob: 常见于内嵌图片，无 SSRF 风险）
+const SAFE_SUBRESOURCE_PROTOCOLS = new Set(['data:', 'blob:', 'about:']);
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const url = typeof body?.url === 'string' ? body.url : '';
+    const url = typeof body?.url === 'string' ? body.url.trim() : '';
     const customText = typeof body?.customText === 'string' ? body.customText.slice(0, 500) : '';
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
-    // 验证URL格式
-    try {
-      new URL(url);
-    } catch {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
-    }      // 配置Puppeteer启动选项，根据平台调整
-    const isWin = process.platform === 'win32';
-    const isDev = process.env.NODE_ENV !== 'production';
+    // SSRF 防护：同步校验（协议/凭证/主机名字面量）
+    const syncCheck = checkPublicHttpUrl(url);
+    if (!syncCheck.ok) {
+      return NextResponse.json({ error: syncCheck.error }, { status: 400 });
+    }
 
+    // SSRF 防护：DNS 解析校验（拦截解析到内网的域名，缓解 DNS rebinding）
+    const dnsCheck = await checkPublicHttpUrlWithDns(url);
+    if (!dnsCheck.ok) {
+      return NextResponse.json({ error: dnsCheck.error }, { status: 400 });
+    }
+
+    const isLinuxProd = process.platform !== 'win32' && process.env.NODE_ENV === 'production';
+
+    // 注意：不做任何证书校验豁免——存证内容必须经过完整 TLS 验证
     const puppeteerOptions: LaunchOptions = {
       headless: true,
+      ...(isLinuxProd ? { executablePath: CHROMIUM_PATH } : {}),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -35,36 +49,20 @@ export async function POST(request: NextRequest) {
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-        '--ignore-certificate-errors',
-        '--ignore-ssl-errors',
-        '--ignore-certificate-errors-spki-list'
-      ]
+      ],
     };
 
-    // Windows开发环境特殊配置
-    if (isWin && isDev) {
-      // Windows开发环境让Puppeteer自动寻找Chrome
-      console.log('Running in Windows development mode');
-    } else if (!isWin && !isDev) {
-      // Linux生产环境配置，优先使用环境变量指定的Chromium路径
-      puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
-    }
-      // 启动浏览器，添加重试逻辑
     let browser;
-    console.log('Attempting to launch browser...');
     try {
       browser = await puppeteer.launch(puppeteerOptions);
-      console.log('Browser launched successfully');
     } catch (browserError) {
-      console.error('Initial browser launch failed:', browserError);
+      logger.error('browser_launch_failed', { message: (browserError as Error).message });
       // 重试，使用更简单的配置
       try {
-        console.log('Retrying with simplified configuration...');
-        browser = await puppeteer.launch({ 
+        browser = await puppeteer.launch({
           headless: true,
-          args: ['--no-sandbox', '--disable-dev-shm-usage'] 
+          args: ['--no-sandbox', '--disable-dev-shm-usage'],
         });
-        console.log('Browser launched successfully on retry');
       } catch (retryError) {
         throw new Error(`Failed to start browser: ${(retryError as Error).message}`);
       }
@@ -73,64 +71,78 @@ export async function POST(request: NextRequest) {
     try {
       const page = await browser.newPage();
 
-      // 设置视口大小
+      // 子资源 SSRF 拦截：阻止页面内的 file:/ftp: 等协议请求，
+      // 以及 IP 字面量指向内网的子资源（主文档已做完整 DNS 校验）
+      await page.setRequestInterception(true);
+      page.on('request', (req) => {
+        try {
+          const reqUrl = new URL(req.url());
+          if (!SAFE_SUBRESOURCE_PROTOCOLS.has(reqUrl.protocol)
+            && reqUrl.protocol !== 'http:'
+            && reqUrl.protocol !== 'https:') {
+            req.abort();
+            return;
+          }
+          if (isPrivateHostname(reqUrl.hostname)) {
+            req.abort();
+            return;
+          }
+          req.continue();
+        } catch {
+          req.abort();
+        }
+      });
+
       await page.setViewport({
         width: 1920,
         height: 1080,
         deviceScaleFactor: 1,
-      });    // 设置用户代理
+      });
       await page.setUserAgent(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       );
 
-      // 导航到目标页面，添加错误处理
-      // 设置页面超时
       page.setDefaultTimeout(60000);
       page.setDefaultNavigationTimeout(60000);
-      
-      console.log(`Navigating to URL: ${url}`);
-      
-      // 使用更宽松的等待策略
+
       await page.goto(url, {
-        waitUntil: 'domcontentloaded', // 改为更宽松的等待策略
-        timeout: 45000, // 增加超时时间
+        waitUntil: 'domcontentloaded',
+        timeout: 45000,
       });
-        console.log('Page navigation completed');
-      
-      // 等待页面稳定，但设置最大等待时间
+
+      // 等待页面稳定，超时则继续截图（不阻断）
       try {
         await page.waitForFunction(() => document.readyState === 'complete', { timeout: 10000 });
-        console.log('Page load state completed');
       } catch {
-        console.log('Page load state timeout, proceeding with screenshot');
+        logger.warn('page_ready_state_timeout', { host: logSafeHost(url) });
       }
-      
-      // 额外等待确保页面渲染完成
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      console.log('Ready to take screenshot');
-      
-      // 截取整个页面
+
+      // 智能等待：网络空闲（连续 500ms 无网络请求）替代硬编码延时，
+      // 动态内容加载完成即继续，静态页面不空等；超时 8s 兜底
+      try {
+        await page.waitForNetworkIdle({ idleTime: 500, timeout: 8000 });
+      } catch {
+        logger.warn('network_idle_timeout', { host: logSafeHost(url) });
+      }
+
       const screenshot = await page.screenshot({
         fullPage: true,
         type: 'png',
       });
-      
+
       // 关闭浏览器（失败不阻断后续水印处理）
       await browser.close().catch(() => {});
-      
-      // 生成时间戳
+
       const timestamp = new Date().toISOString();
-      
-      // 添加盲水印
+
       const watermarkedImage = await addWatermark(Buffer.from(screenshot), {
         timestamp,
         customText: customText || '',
-        url
+        url,
       });
-      
-      // 转换为base64
+
       const base64Image = `data:image/png;base64,${watermarkedImage.toString('base64')}`;
-      
+
       return NextResponse.json({
         success: true,
         imageUrl: base64Image,
@@ -144,9 +156,8 @@ export async function POST(request: NextRequest) {
       throw pageError;
     }
   } catch (error) {
-    console.error('Screenshot error:', error);
-    
-    // 提供更详细的错误信息
+    logger.error('screenshot_failed', { message: (error as Error)?.message });
+
     let errorMessage = 'Failed to capture screenshot';
     if (error instanceof Error) {
       if (error.message.includes('net::ERR_NAME_NOT_RESOLVED')) {
@@ -163,11 +174,11 @@ export async function POST(request: NextRequest) {
         errorMessage = 'Failed to initialize browser environment';
       }
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error)?.message : undefined,
       },
       { status: 500 }
     );

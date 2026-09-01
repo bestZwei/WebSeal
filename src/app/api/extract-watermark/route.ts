@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { extractWatermark } from '@/lib/watermark';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,9 +68,8 @@ export async function POST(request: NextRequest) {
       url: watermarkData.url,
       extractedAt: new Date().toISOString(),
     });
-
   } catch (error) {
-    console.error('Watermark extraction error:', error);
+    logger.error('watermark_extract_failed', { message: (error as Error)?.message });
     return NextResponse.json(
       { error: 'Failed to extract watermark' },
       { status: 500 }

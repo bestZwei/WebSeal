@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -37,7 +38,7 @@ export async function GET() {
       status: chromiumOk ? 200 : 503
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('health_check_failed', { message: (error as Error).message });
     return NextResponse.json(
       {
         status: 'error',

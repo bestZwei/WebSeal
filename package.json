@@ -10,7 +10,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "docker:build": "docker build -t webseal:latest .",
     "docker:run": "docker run -d -p 3000:3000 --name webseal-container webseal:latest",
@@ -21,10 +21,6 @@
     "compose:logs": "docker-compose logs -f"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "^1.1.14",
-    "@radix-ui/react-progress": "^1.1.7",
-    "@radix-ui/react-select": "^2.2.5",
-    "@radix-ui/react-toast": "^1.2.14",
     "lucide-react": "^0.514.0",
     "next": "15.3.3",
     "puppeteer": "^24.10.0",
