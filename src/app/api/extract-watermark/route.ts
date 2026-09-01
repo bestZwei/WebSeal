@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
 import { extractWatermark } from '@/lib/watermark';
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
+    const imageFile = formData.get('image');
 
-    if (!imageFile) {
+    if (!imageFile || typeof imageFile === 'string') {
       return NextResponse.json({ error: 'No image file provided' }, { status: 400 });
-    }
-
-    // 验证文件类型
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(imageFile.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only PNG, JPG, JPEG are allowed' },
-        { status: 400 }
-      );
     }
 
     // 验证文件大小 (10MB)
@@ -31,6 +23,32 @@ export async function POST(request: NextRequest) {
     // 将文件转换为Buffer
     const arrayBuffer = await imageFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // 通过文件内容识别真实格式（上传时的 MIME 类型可被伪造）。
+    // LSB 水印存储在像素最低有效位中，JPEG 的有损压缩会破坏水印数据，
+    // 因此仅接受 PNG 格式。
+    let format: string | undefined;
+    try {
+      const metadata = await sharp(buffer).metadata();
+      format = metadata.format;
+    } catch {
+      return NextResponse.json(
+        { error: '上传的文件不是有效的图片' },
+        { status: 400 }
+      );
+    }
+
+    if (format !== 'png') {
+      return NextResponse.json(
+        {
+          error:
+            format === 'jpeg'
+              ? '不支持 JPEG/JPG 图片：JPEG 的有损压缩会破坏 LSB 水印数据，请上传原始 PNG 快照'
+              : `不支持的图片格式: ${format ?? 'unknown'}，请上传 PNG 格式的快照`,
+        },
+        { status: 400 }
+      );
+    }
 
     // 提取水印
     const watermarkData = await extractWatermark(buffer);

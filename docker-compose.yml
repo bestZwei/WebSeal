@@ -21,7 +21,8 @@ services:
     volumes:
       - /dev/shm:/dev/shm
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      # alpine 镜像没有 curl，使用 busybox 自带的 wget
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

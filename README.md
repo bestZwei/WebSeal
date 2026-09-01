@@ -1,6 +1,6 @@
 # WebSeal - 专业的网页存证工具
 
-![WebSeal Logo](public/logo.png)
+![WebSeal Logo](public/apple-touch-icon.png)
 
 ## 📖 项目简介
 
@@ -142,7 +142,7 @@ npm run start
 1. **上传图片**
    - 点击上传区域选择图片文件
    - 或直接拖拽图片到上传区域
-   - 支持 PNG、JPG、JPEG 格式，最大 10MB
+   - 仅支持 PNG 格式（水印在 JPEG 等有损压缩格式中会被破坏），最大 10MB
 
 2. **提取水印**
    - 系统会自动分析图片中的水印信息

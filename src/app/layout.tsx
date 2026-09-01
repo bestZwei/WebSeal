@@ -24,31 +24,16 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://webseal.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "WebSeal - 专业的网页存证工具",
     description: "使用先进的盲水印技术为网页快照添加时间戳和自定义文字水印",
-    url: "https://webseal.vercel.app",
     siteName: "WebSeal",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "WebSeal - 专业的网页存证工具",
-      },
-    ],
     locale: "zh_CN",
     type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "WebSeal - 专业的网页存证工具",
-    description: "使用先进的盲水印技术为网页快照添加时间戳和自定义文字水印",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -60,9 +45,6 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-  verification: {
-    google: "your-google-verification-code",
   },
 };
 

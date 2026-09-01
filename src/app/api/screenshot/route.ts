@@ -4,12 +4,14 @@ import { addWatermark } from '@/lib/watermark';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url, customText } = await request.json();
+    const body = await request.json();
+    const url = typeof body?.url === 'string' ? body.url : '';
+    const customText = typeof body?.customText === 'string' ? body.customText.slice(0, 500) : '';
 
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
-    
+
     // 验证URL格式
     try {
       new URL(url);
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
     }      // 配置Puppeteer启动选项，根据平台调整
     const isWin = process.platform === 'win32';
     const isDev = process.env.NODE_ENV !== 'production';
-    
+
     const puppeteerOptions: LaunchOptions = {
       headless: true,
       args: [
@@ -29,7 +31,6 @@ export async function POST(request: NextRequest) {
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
-        '--disable-web-security',
         '--disable-features=VizDisplayCompositor',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
@@ -39,14 +40,14 @@ export async function POST(request: NextRequest) {
         '--ignore-certificate-errors-spki-list'
       ]
     };
-    
+
     // Windows开发环境特殊配置
     if (isWin && isDev) {
       // Windows开发环境让Puppeteer自动寻找Chrome
       console.log('Running in Windows development mode');
     } else if (!isWin && !isDev) {
-      // Linux生产环境配置
-      puppeteerOptions.executablePath = '/usr/bin/chromium-browser';
+      // Linux生产环境配置，优先使用环境变量指定的Chromium路径
+      puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
     }
       // 启动浏览器，添加重试逻辑
     let browser;
@@ -69,20 +70,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const page = await browser.newPage();
-
-    // 设置视口大小
-    await page.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1,
-    });    // 设置用户代理
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    );
-
-    // 导航到目标页面，添加错误处理
     try {
+      const page = await browser.newPage();
+
+      // 设置视口大小
+      await page.setViewport({
+        width: 1920,
+        height: 1080,
+        deviceScaleFactor: 1,
+      });    // 设置用户代理
+      await page.setUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      );
+
+      // 导航到目标页面，添加错误处理
       // 设置页面超时
       page.setDefaultTimeout(60000);
       page.setDefaultNavigationTimeout(60000);
@@ -114,8 +115,8 @@ export async function POST(request: NextRequest) {
         type: 'png',
       });
       
-      // 关闭浏览器
-      await browser.close();
+      // 关闭浏览器（失败不阻断后续水印处理）
+      await browser.close().catch(() => {});
       
       // 生成时间戳
       const timestamp = new Date().toISOString();
@@ -138,8 +139,8 @@ export async function POST(request: NextRequest) {
         customText: customText || '',
       });
     } catch (pageError) {
-      // 确保浏览器被关闭
-      await browser.close();
+      // 确保浏览器被关闭，避免进程泄漏
+      await browser.close().catch(() => {});
       throw pageError;
     }
   } catch (error) {

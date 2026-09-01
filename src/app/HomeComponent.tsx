@@ -89,10 +89,9 @@ export default function Home() {
       return;
     }
 
-    // 验证文件类型
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(imageFile.type)) {
-      showToast('请选择 PNG、JPG 或 JPEG 格式的图片', 'error');
+    // 验证文件类型（LSB 水印仅能在无损的 PNG 中存活，JPEG 有损压缩会破坏水印数据）
+    if (imageFile.type !== 'image/png') {
+      showToast('请选择 PNG 格式的图片（JPEG 有损压缩会破坏水印，无法提取）', 'error');
       return;
     }
 
@@ -292,6 +291,7 @@ export default function Home() {
                     id="customText"
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
+                    maxLength={500}
                     placeholder="输入要嵌入的自定义文字，如：公司名称、证据编号等"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   />
@@ -419,11 +419,11 @@ export default function Home() {
                       点击上传或拖拽图片文件
                     </p>
                     <p className="text-sm text-gray-600">
-                      支持 PNG, JPG, JPEG 格式，最大 10MB
+                      仅支持 PNG 格式（水印在 JPEG 中会被破坏），最大 10MB
                     </p>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -573,7 +573,7 @@ export default function Home() {
                 <li>LSB 隐写算法</li>
                 <li>高质量截图</li>
                 <li>时间戳认证</li>
-                <li>云端部署</li>
+                <li>Docker 服务器部署</li>
               </ul>
             </div>
           </div>

@@ -8,6 +8,10 @@ WORKDIR /app
 
 # 复制 package 文件
 COPY package.json package-lock.json* ./
+
+# 跳过 Puppeteer 自带 Chrome 下载（运行阶段使用系统 Chromium，deps 阶段无需下载）
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 RUN npm ci
 
 # 构建应用

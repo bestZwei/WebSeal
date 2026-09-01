@@ -105,8 +105,8 @@ export async function extractWatermark(imageBuffer: Buffer): Promise<WatermarkDa
         }
       }
       
-      // 防止无限循环，设置最大长度
-      if (binaryData.length > 10000) {
+      // 防止无限循环，设置最大长度（长 URL + 中文自定义文字的 UTF-8 编码可达数万比特）
+      if (binaryData.length > 100000) {
         throw new Error('Watermark data too long or corrupted');
       }
     }
