@@ -1,5 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
+
+export interface ToastItem {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
 
 interface ToastProps {
   message: string;
@@ -9,10 +15,14 @@ interface ToastProps {
 }
 
 export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
+  // 用 ref 持有最新 onClose，避免父组件重渲染导致定时器被重置
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    const timer = setTimeout(onClose, duration);
+    const timer = setTimeout(() => onCloseRef.current(), duration);
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration]);
 
   const icons = {
     success: CheckCircle,
@@ -44,34 +54,38 @@ export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
   );
 }
 
-export function useToast() {
-  const [toasts, setToasts] = useState<Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'info';
-  }>>([]);
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    const id = Date.now().toString();
-    setToasts(prev => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  const ToastContainer = () => (
+export function ToastContainer({ toasts, onClose }: {
+  toasts: ToastItem[];
+  onClose: (id: number) => void;
+}) {
+  return (
     <>
       {toasts.map(toast => (
         <Toast
           key={toast.id}
           message={toast.message}
           type={toast.type}
-          onClose={() => removeToast(toast.id)}
+          onClose={() => onClose(toast.id)}
         />
       ))}
     </>
   );
+}
 
-  return { showToast, ToastContainer };
+export function useToast() {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // 用自增计数器生成 id，避免 Date.now() 在同一毫秒内冲突
+  const nextIdRef = useRef(0);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info') => {
+    nextIdRef.current += 1;
+    const id = nextIdRef.current;
+    setToasts(prev => [...prev, { id, message, type }]);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
+  return { toasts, showToast, removeToast };
 }

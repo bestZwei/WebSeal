@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
-import puppeteer from 'puppeteer';
 
 export async function GET() {
   try {
@@ -12,7 +11,7 @@ export async function GET() {
     let chromiumError: string | null = null;
 
     try {
-      chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath();
+      chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser';
       fs.accessSync(chromiumPath, fs.constants.X_OK);
       chromiumOk = true;
     } catch (error) {

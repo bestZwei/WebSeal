@@ -14,10 +14,6 @@ services:
     restart: unless-stopped
     mem_limit: 1g
     mem_reservation: 512m
-    security_opt:
-      - seccomp:unconfined
-    cap_add:
-      - SYS_ADMIN
     volumes:
       - /dev/shm:/dev/shm
     healthcheck:
