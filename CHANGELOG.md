@@ -14,6 +14,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- Docker 镜像缺少中日韩字体，导致截图中的中文显示为方块：runner 阶段新增 `font-noto-cjk` + `fontconfig`，并预生成字体缓存（`fc-cache -f`）
+- CI 增加中文字体存在性校验，防止该问题再次回归
+
 ### 新增
 
 - GitHub Actions 发布工作流：推送 `v*.*.*` 标签自动构建并推送 Docker 镜像、创建 Release

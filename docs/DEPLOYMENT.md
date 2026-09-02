@@ -219,14 +219,41 @@ Failed to launch the browser process
 curl http://localhost:3000/api/health
 ```
 
-### 中文显示为方块
+### 中文显示为方块（豆腐块）
 
-Docker 镜像已内置 `ttf-freefont` 和 `font-noto-emoji`。裸机部署时如截图中文乱码，安装中文字体：
+**原因**：运行环境缺少中文字体（CJK 字形）。Chromium 找不到可渲染中文的字体时，会把汉字渲染成空心方块。这与水印无关——水印嵌入是无损 PNG 处理，不会降低画面清晰度。
+
+**Docker**：拉取/构建的镜像需包含 `font-noto-cjk`。确认当前容器是否有中文字体：
+
+```bash
+docker exec webseal-container fc-list :lang=zh
+# 有输出即正常；无输出说明镜像缺少中文字体
+```
+
+- 使用官方镜像：升级到 `v1.0.1` 及以上版本（`docker compose pull && docker compose up -d`）。
+- 临时修复（容器重建后失效）：
+  ```bash
+  docker exec -u root webseal-container apk add --no-cache font-noto-cjk
+  docker restart webseal-container
+  ```
+- 自行构建：确保 Dockerfile 的 runner 阶段已安装 `font-noto-cjk`（当前仓库已包含）。
+
+**裸机部署**：安装中文字体并刷新缓存：
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install -y fonts-noto-cjk
+sudo apt-get install -y fonts-noto-cjk fontconfig
+sudo fc-cache -f
+
+# CentOS / RHEL
+sudo yum install -y google-noto-sans-cjk-fonts fontconfig
+sudo fc-cache -f
+
+# 验证
+fc-list :lang=zh | head
 ```
+
+> 镜像体积会增加约 90MB（`font-noto-cjk` 安装后大小），这是中文截图正确渲染的必要成本。
 
 ### 调试命令
 

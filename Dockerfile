@@ -75,6 +75,14 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # 安装 Chrome 依赖
+# chromium        浏览器本体
+# nss/freetype/harfbuzz  渲染与字体依赖
+# ca-certificates TLS 校验（存证不做证书豁免，必须完整验证）
+# 字体：
+#   ttf-freefont    基础拉丁字体
+#   font-noto-emoji emoji 字体
+#   font-noto-cjk   ★ 中日韩字体，缺失会导致截图中的中文显示为方块（豆腐块）
+#   fontconfig      字体配置与缓存工具（fc-cache）
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -83,7 +91,12 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    font-noto-emoji
+    font-noto-emoji \
+    font-noto-cjk \
+    fontconfig
+
+# 预生成字体缓存，避免首次截图时 Chromium 临时构建缓存导致超时
+RUN fc-cache -f
 
 # 设置 Puppeteer 环境变量
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \

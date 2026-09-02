@@ -73,6 +73,16 @@ jobs:
           done
           curl -fsS http://localhost:3000/api/health | grep -q '"status":"ok"'
 
+      - name: 校验镜像内置中文字体（缺字体会导致截图中文变方块）
+        run: |
+          set -euo pipefail
+          COUNT="$(docker run --rm webseal:ci sh -c 'fc-list :lang=zh | wc -l')"
+          echo "CJK 字体数量: $COUNT"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::镜像缺少中文字体，请确认 Dockerfile 已安装 font-noto-cjk"
+            exit 1
+          fi
+
       - name: 输出容器日志（失败时）
         if: failure()
         run: docker logs webseal-ci
