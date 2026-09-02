@@ -1,6 +1,6 @@
 {
   "name": "webseal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "专业的网页快照与水印工具 - 使用盲水印技术为网页快照添加时间戳和自定义文字水印",
   "private": true,
   "keywords": [
