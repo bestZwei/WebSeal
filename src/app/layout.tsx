@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WebSeal - 专业的网页存证工具",
-  description: "使用先进的盲水印技术为网页快照添加时间戳和自定义文字水印，确保网页内容的真实性和完整性，适用于法律存证、网页归档等场景。",
-  keywords: ["网页存证", "盲水印", "网页快照", "法律存证", "网页归档", "数字水印"],
+  title: "WebSeal - 专业的网页快照与水印工具",
+  description: "使用先进的盲水印技术为网页快照添加时间戳和自定义文字水印，便于网页内容的归档留痕与事后核对，适用于网页归档、内容留痕等场景。",
+  keywords: ["网页快照", "盲水印", "网页归档", "数字水印", "内容留痕"],
   authors: [{ name: "WebSeal Team" }],
   creator: "WebSeal Team",
   publisher: "WebSeal Team",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "WebSeal - 专业的网页存证工具",
+    title: "WebSeal - 专业的网页快照与水印工具",
     description: "使用先进的盲水印技术为网页快照添加时间戳和自定义文字水印",
     siteName: "WebSeal",
     locale: "zh_CN",

@@ -303,4 +303,4 @@ Render 是 PaaS 容器平台（非 Serverless），本项目的 Docker 镜像可
 
 ---
 
-完成部署后，你的 WebSeal 实例就可以提供网页存证服务了！ 🚀
+完成部署后，你的 WebSeal 实例就可以提供网页快照与水印服务了！ 🚀

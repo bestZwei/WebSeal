@@ -27,7 +27,7 @@ async function makeImage() {
 {
   const data = {
     timestamp: '2026-09-01T10:00:00.000Z',
-    customText: '公司名称：某某科技有限公司 证据编号：#20260901',
+    customText: '公司名称：某某科技有限公司 存档编号：#20260901',
     url: 'https://example.com/page?x=1',
   };
   const signature = signPayload(canonicalPayload(data));

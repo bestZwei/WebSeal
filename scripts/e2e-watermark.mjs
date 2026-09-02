@@ -1,6 +1,6 @@
 // 端到端验证：截图(中文水印) -> 保存PNG -> 回传提取 -> 比对
 const BASE = process.env.BASE_URL || 'http://localhost:3456';
-const customText = '证据编号：测试-20260901 公司：某某科技';
+const customText = '存档编号：测试-20260901 公司：某某科技';
 
 const shotRes = await fetch(`${BASE}/api/screenshot`, {
   method: 'POST',

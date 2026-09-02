@@ -12,7 +12,7 @@
 
 部署时用 `WEBSEAL_IMAGE` 指定镜像标签即可锁定版本，详见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
-## [Unreleased]
+## [1.1.0] - 2026-09-02
 
 ### 修复
 
@@ -27,6 +27,12 @@
 - docker-compose.yml 改为默认拉取 GHCR 预构建镜像，支持 `WEBSEAL_IMAGE` 锁定版本，新增 `shm_size`
 - 新增 `render.yaml`（Render 一键部署）与 `.env.example` 配置模板
 - 新增本文件（CHANGELOG.md）
+
+### 变更
+
+- 移除"法律存证 / 法律证据"等法律层面的表述：产品定位调整为「网页快照与水印工具」，使用场景改为网页归档与内容留痕
+- 页面与文档中的"证据编号"统一改为"存档编号"
+- README「法律声明」改为「免责声明」，明确本工具仅提供技术层面的快照记录，不构成法律证据、公证或法律保证
 
 ## [1.0.0]
 

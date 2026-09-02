@@ -235,14 +235,14 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">WebSeal</h1>
-                <p className="text-sm text-gray-600">网页存证与水印工具</p>
+                <p className="text-sm text-gray-600">网页快照与水印工具</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-6 text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>法律存证</span>
+                  <span>时间戳留痕</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Archive className="h-4 w-4 text-blue-500" />
@@ -263,11 +263,11 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            专业的网页存证工具
+            专业的网页快照与水印工具
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             使用先进的盲水印技术，为网页快照添加时间戳和自定义文字水印，
-            确保网页内容的真实性和完整性，适用于法律存证、网页归档等场景。
+            便于网页内容的归档留痕与事后核对，适用于网页归档、内容留痕等场景。
           </p>
         </div>
 
@@ -337,7 +337,7 @@ export default function Home() {
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
                     maxLength={500}
-                    placeholder="输入要嵌入的自定义文字，如：公司名称、证据编号等"
+                    placeholder="输入要嵌入的自定义文字，如：公司名称、存档编号等"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
@@ -384,7 +384,7 @@ export default function Home() {
                   </div>
 
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">存证信息</h4>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">快照信息</h4>
                     <div className="space-y-4">
                       <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
                         <Clock className="h-5 w-5 text-blue-600" />
@@ -672,9 +672,9 @@ export default function Home() {
             <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <Archive className="h-8 w-8 text-green-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">法律存证</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">内容留痕</h3>
             <p className="text-gray-600">
-              生成的快照可用于法律证据，时间戳确保内容的时效性和真实性
+              为快照嵌入时间戳与自定义水印，便于日后追溯与核对
             </p>
           </div>
 
@@ -701,12 +701,12 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">WebSeal</h3>
-                  <p className="text-gray-400">专业网页存证工具</p>
+                  <p className="text-gray-400">专业网页快照与水印工具</p>
                 </div>
               </div>
               <p className="text-gray-400 mb-4">
-                WebSeal 是一款专业的网页存证工具，采用先进的盲水印技术，
-                为网页快照提供时间戳和自定义文字水印，确保网页内容的真实性和完整性。
+                WebSeal 是一款专业的网页快照与水印工具，采用先进的盲水印技术，
+                为网页快照提供时间戳和自定义文字水印，便于网页内容的归档留痕与事后核对。
               </p>
             </div>
 
@@ -716,7 +716,7 @@ export default function Home() {
                 <li>网页快照生成</li>
                 <li>盲水印嵌入</li>
                 <li>水印提取验证</li>
-                <li>法律存证支持</li>
+                <li>内容留痕与追溯</li>
               </ul>
             </div>
 
@@ -725,7 +725,7 @@ export default function Home() {
               <ul className="space-y-2 text-gray-400">
                 <li>LSB 隐写算法</li>
                 <li>高质量截图</li>
-                <li>时间戳认证</li>
+                <li>时间戳留痕</li>
                 <li>Docker 服务器部署</li>
               </ul>
             </div>

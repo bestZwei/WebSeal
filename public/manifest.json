@@ -1,7 +1,7 @@
 {
   "name": "WebSeal",
   "short_name": "WebSeal",
-  "description": "专业的网页存证工具",
+  "description": "专业的网页快照与水印工具",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

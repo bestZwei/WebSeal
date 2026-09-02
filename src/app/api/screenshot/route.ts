@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const isLinuxProd = process.platform !== 'win32' && process.env.NODE_ENV === 'production';
 
-    // 注意：不做任何证书校验豁免——存证内容必须经过完整 TLS 验证
+    // 注意：不做任何证书校验豁免——快照内容必须经过完整 TLS 验证
     const puppeteerOptions: LaunchOptions = {
       headless: true,
       ...(isLinuxProd ? { executablePath: CHROMIUM_PATH } : {}),
