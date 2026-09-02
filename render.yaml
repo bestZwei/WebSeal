@@ -1,0 +1,29 @@
+# Render 一键部署配置
+# 使用方式：Render 控制台 → New → Blueprints → 关联本仓库，即可自动创建服务。
+# 也可在 New → Web Service 中手动选择 Docker 环境并指向本文件。
+
+services:
+  - type: web
+    name: webseal
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard          # 至少 1GB+ 内存：Chromium 很吃内存，free/starter(512MB) 易 OOM
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "true"
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium-browser
+      # 以下为可选配置，建议在 Render 控制台手动粘贴（sync: false 表示不纳入代码库）
+      - key: WEBSEAL_PRIVATE_KEY
+        sync: false
+      - key: WEBSEAL_PUBLIC_KEY
+        sync: false
+      - key: WEBSEAL_TSA_URL
+        sync: false
+      - key: WEBSEAL_TSA_REQUIRED
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false

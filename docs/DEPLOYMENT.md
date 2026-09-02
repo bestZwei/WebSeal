@@ -179,6 +179,36 @@ npm ci
 npm run build
 ```
 
+## ☁️ Render 部署（Docker）
+
+Render 是 PaaS 容器平台（非 Serverless），本项目的 Docker 镜像可以在上面运行。注意：**必须使用 Docker 运行时**，不能用 Render 的 Node 原生运行时（其上未预装 Chromium）。
+
+代码已内置 `--disable-dev-shm-usage`（绕过 Render 受限的 `/dev/shm`），Dockerfile 也已在 Alpine 内装好系统 `chromium`，所以现有镜像可直接部署。
+
+### 方式 A：仓库内置 render.yaml（推荐，一键建服务）
+
+已在仓库根目录提供 `render.yaml`，在 Render 控制台操作：
+
+1. **New → Blueprints** → 关联本仓库，Render 会自动读取 `render.yaml` 创建服务。
+2. 在控制台补充 `WEBSEAL_PRIVATE_KEY` / `WEBSEAL_PUBLIC_KEY`（用 `node scripts/generate-keys.mjs` 生成）等可选变量。
+3. 点击 Deploy，启动后访问 `https://<服务名>.onrender.com`。
+
+### 方式 B：控制台手动创建
+
+1. **New → Web Service** → 关联仓库。
+2. **Environment** 选 `Docker`（Render 自动识别根目录 `Dockerfile`）。
+3. **Health Check Path** 填 `/api/health`（项目已自带该接口，正常返回 `status: ok`）。
+4. **Instance Type 选 `Standard`（≥1GB 内存）**：Chromium 很吃内存，free / starter 的 512MB 容易 OOM 重启。
+5. 添加环境变量：`NODE_ENV=production`，以及可选的 `WEBSEAL_PRIVATE_KEY`、`WEBSEAL_PUBLIC_KEY`、`WEBSEAL_TSA_URL`。
+6. Render 会自动注入 `PORT`，Dockerfile 中的 `ENV PORT=3000` 仅为默认值，运行时会被覆盖，无需手动改端口。
+
+### 注意事项
+
+- **内存是主要瓶颈**：每次截图都会启动一个 Chrome 实例，Render 上无法像 `docker-compose` 那样用 `mem_limit` / `shm_size` 控制，请选择足够大的实例类型并控制并发。
+- **免费实例会冷启休眠**：长时间无请求后首次访问需等 Chrome 冷启动（约 20~40 秒），生产建议用常驻付费实例。
+- **SSRF 风险**：截图接口可访问任意 URL，公网部署建议在服务前加 Cloudflare 或鉴权网关。
+- **验证**：部署后访问 `/api/health`，确认 `chromium.available: true` 再正式使用。
+
 ---
 
 完成部署后，你的 WebSeal 实例就可以提供网页存证服务了！ 🚀
