@@ -4,55 +4,120 @@
 
 > ⚠️ **本项目仅支持服务器部署**（Docker 或裸机运行），不支持 Vercel、Netlify 等 Serverless 平台——截图功能依赖 Puppeteer，需要完整的 Chrome/Chromium 浏览器环境。
 
-## 🐳 Docker 部署（推荐）
+## 📦 版本与镜像
 
-Docker 镜像已内置 Chromium 及全部字体依赖，开箱即用。
+项目采用语义化版本（`主版本.次版本.修订号`），每次发版会自动构建并推送 Docker 镜像到 GHCR：
 
-### 使用 docker-compose 一键启动
-
-```bash
-docker-compose up -d
+```
+ghcr.io/bestzwei/webseal:<版本>
 ```
 
-### 或手动构建和运行
+| 镜像标签 | 说明 | 适用场景 |
+| --- | --- | --- |
+| `1.0.0` | 精确版本，永不变化 | **生产推荐**，可复现、可回滚 |
+| `1.0` | 小版本线，跟随该系列的修订号更新 | 只想接收补丁更新 |
+| `latest` | 最新正式版 | 尝鲜 / 个人使用 |
+
+查看全部可用版本：[GHCR Packages](https://github.com/bestZwei/WebSeal/pkgs/container/webseal) 或 Releases 页面。
+
+### 发版流程（维护者）
 
 ```bash
-# 构建镜像
-docker build -t webseal:latest .
+# 1. 更新 package.json 版本并生成 commit + 标签（patch / minor / major 三选一）
+npm run release:patch
 
-# 运行容器
-docker run -d -p 3000:3000 --name webseal-container webseal:latest
+# 2. 推送提交与标签
+npm run release:push
+```
 
-# 查看日志
+推送 `v*.*.*` 标签后，`.github/workflows/release.yml` 会自动：
+
+1. 校验 `package.json` 版本与标签一致；
+2. 构建镜像（含 OCI 元数据标签）并推送 GHCR；
+3. 对镜像做 `/api/health` 冒烟测试；
+4. 生成 GitHub Release（自动更新说明 + 镜像拉取命令）。
+
+也可以在 Actions 页面手动运行 **Release** 工作流并输入版本号（如 `v1.0.1`），会自动补建标签后发布。
+
+> 发布前记得把变更写进 [CHANGELOG.md](../CHANGELOG.md)。
+
+## 🐳 Docker 部署（推荐）
+
+Docker 镜像已内置 Chromium 及全部字体依赖，开箱即用，服务器无需安装 Node.js。
+
+### 方式一：直接拉取官方镜像（推荐）
+
+```bash
+# 只取编排文件即可，无需克隆整个仓库
+curl -O https://raw.githubusercontent.com/bestZwei/WebSeal/main/docker-compose.yml
+docker compose up -d
+
+# 生产建议锁定版本
+WEBSEAL_IMAGE=ghcr.io/bestzwei/webseal:1.0.0 docker compose up -d
+```
+
+或不用 compose，单条命令启动：
+
+```bash
+docker run -d --shm-size=256m -p 3000:3000 --name webseal-container ghcr.io/bestzwei/webseal:latest
 docker logs -f webseal-container
+```
+
+### 方式二：从源码构建
+
+```bash
+# 构建镜像（VERSION 会写入镜像的 org.opencontainers.image.version 标签）
+docker build -t webseal:latest --build-arg VERSION=1.0.0 .
+
+# 运行容器（--shm-size 很关键，默认 64MB 会导致大页面截图崩溃）
+docker run -d --shm-size=256m -p 3000:3000 --name webseal-container webseal:latest
 ```
 
 也可以使用 npm 封装的快捷命令：
 
 ```bash
-npm run docker:build
+npm run docker:pull     # 拉取官方 latest 镜像
+npm run docker:build    # 从源码构建
 npm run docker:run
 npm run docker:logs
-npm run compose:up
+npm run compose:up      # docker compose up -d
+npm run compose:pull    # 更新镜像
+npm run compose:logs
 ```
 
 启动后访问 [http://localhost:3000](http://localhost:3000)。
+
+### 升级与回滚
+
+```bash
+# 升级到最新版
+docker compose pull && docker compose up -d
+
+# 回滚到指定版本
+WEBSEAL_IMAGE=ghcr.io/bestzwei/webseal:1.0.0 docker compose up -d
+```
 
 ### docker-compose.yml 说明
 
 ```yaml
 services:
   webseal:
-    build: .
+    # 预构建镜像；用 WEBSEAL_IMAGE 环境变量覆盖即可锁定版本
+    image: ${WEBSEAL_IMAGE:-ghcr.io/bestzwei/webseal:latest}
     ports:
-      - "3000:3000"
+      - "3000:3000"           # 宿主机端口:容器端口，改左侧可换端口
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    mem_limit: 1g        # Puppeteer 截图比较吃内存，建议至少 1g
+    mem_limit: 1g             # Puppeteer 截图比较吃内存，建议至少 1g
     mem_reservation: 512m
-    shm_size: 256m       # Chrome 需要足够的 /dev/shm
+    shm_size: 256m            # Chrome 需要足够的 /dev/shm
+    healthcheck:
+      # alpine 镜像没有 curl，使用 busybox 自带的 wget
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
 ```
+
+密钥等可选配置见 `.env.example`，复制为 `.env` 后取消 compose 中 `env_file` 的注释即可生效。
 
 ## 🖥️ 裸机部署
 

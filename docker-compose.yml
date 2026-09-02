@@ -1,27 +1,65 @@
-version: '3.8'
+# ==============================================================================
+# WebSeal 生产部署编排
+#
+# 默认拉取 GHCR 上已构建好的镜像，服务器无需 Node.js / Chromium，一条命令即可上线。
+#
+# 常用命令：
+#   docker compose up -d              # 启动（自动拉取镜像）
+#   docker compose pull && docker compose up -d   # 更新到 latest
+#   docker compose logs -f            # 查看日志
+#   docker compose down               # 停止并移除容器
+#
+# 版本控制：
+#   默认 :latest；如需锁定版本，设置 WEBSEAL_IMAGE 环境变量或在 .env 中指定：
+#     WEBSEAL_IMAGE=ghcr.io/bestzwei/webseal:1.0.0 docker compose up -d
+#   可用标签：1.0.0（精确）/ 1.0（小版本线）/ latest
+#
+# 可选配置（密钥等）见同目录 .env.example，复制为 .env 后取消下方 env_file 注释即可。
+# ==============================================================================
 
 services:
   webseal:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    # 预构建镜像；通过 WEBSEAL_IMAGE 可覆盖标签以锁定版本
+    image: ${WEBSEAL_IMAGE:-ghcr.io/bestzwei/webseal:latest}
+
+    # 需要从源码本地构建时：注释上面的 image，取消下面的注释
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+
+    container_name: webseal
+
     ports:
+      # 宿主机端口:容器端口（改左侧即可换端口，如 "8080:3000"）
       - "3000:3000"
+
     environment:
       - NODE_ENV=production
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-      # 水印签名密钥（生成方式: node scripts/generate-keys.mjs），取消注释并填入 PEM 内容
+      # 水印签名密钥（生成方式: node scripts/generate-keys.mjs）
+      # 建议放进 .env 并启用下面的 env_file，避免密钥写进本文件
       # - WEBSEAL_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----...
       # - WEBSEAL_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
       # 可信时间戳服务（RFC 3161），配置后对快照哈希请求权威时间背书
       # - WEBSEAL_TSA_URL=https://freetsa.org/tsr
       # - WEBSEAL_TSA_REQUIRED=false
+      # 站点对外地址（影响 SEO metadata），如 https://webseal.example.com
+      # - NEXT_PUBLIC_BASE_URL=
+
+    # 从 .env 读取可选配置（需先 cp .env.example .env）；不使用可保持注释
+    # env_file:
+    #   - .env
+
     restart: unless-stopped
+
+    # 资源限制：每次截图都会启动一个 Chromium 实例，建议不低于 1g
     mem_limit: 1g
     mem_reservation: 512m
-    volumes:
-      - /dev/shm:/dev/shm
+
+    # Chrome 需要足够的共享内存；默认 64MB 时大页面截图容易崩溃
+    shm_size: 256m
+
     healthcheck:
       # alpine 镜像没有 curl，使用 busybox 自带的 wget
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]

@@ -21,12 +21,18 @@
     "test": "tsx scripts/test-watermark.mjs && tsx scripts/test-url-guard.mjs && tsx scripts/test-tsa.mjs",
     "type-check": "tsc --noEmit",
     "docker:build": "docker build -t webseal:latest .",
-    "docker:run": "docker run -d -p 3000:3000 --name webseal-container webseal:latest",
+    "docker:run": "docker run -d --shm-size=256m -p 3000:3000 --name webseal-container webseal:latest",
     "docker:stop": "docker stop webseal-container && docker rm webseal-container",
-    "docker:logs": "docker logs webseal-container",
-    "compose:up": "docker-compose up -d",
-    "compose:down": "docker-compose down",
-    "compose:logs": "docker-compose logs -f"
+    "docker:logs": "docker logs -f webseal-container",
+    "docker:pull": "docker pull ghcr.io/bestzwei/webseal:latest",
+    "compose:up": "docker compose up -d",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f",
+    "compose:pull": "docker compose pull",
+    "release:patch": "npm version patch -m \"chore(release): v%s\"",
+    "release:minor": "npm version minor -m \"chore(release): v%s\"",
+    "release:major": "npm version major -m \"chore(release): v%s\"",
+    "release:push": "git push --follow-tags"
   },
   "dependencies": {
     "@peculiar/asn1-tsp": "^2.9.4",

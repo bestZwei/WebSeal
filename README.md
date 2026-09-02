@@ -80,25 +80,38 @@ npm run start
 
 ### Docker 部署（推荐）
 
-1. **使用 docker-compose 一键启动**
+官方镜像托管在 GHCR，服务器无需安装 Node.js / Chromium。
+
+1. **拉取预构建镜像并启动（最省事）**
 
 ```bash
-docker-compose up -d
+# 只取编排文件，直接拉镜像启动
+curl -O https://raw.githubusercontent.com/bestZwei/WebSeal/main/docker-compose.yml
+docker compose up -d
+
+# 锁定版本（推荐生产环境，避免 latest 意外升级）
+WEBSEAL_IMAGE=ghcr.io/bestzwei/webseal:1.0.0 docker compose up -d
 ```
 
-2. **或手动构建镜像**
+可用镜像标签：`1.0.0`（精确版本）、`1.0`（小版本线）、`latest`。
+
+2. **手动运行镜像**
 
 ```bash
-# 构建镜像
-npm run docker:build
+docker pull ghcr.io/bestzwei/webseal:latest
+docker run -d --shm-size=256m -p 3000:3000 --name webseal ghcr.io/bestzwei/webseal:latest
+```
 
-# 启动容器
+3. **从源码构建镜像**
+
+```bash
+npm run docker:build   # 等同于 docker build -t webseal:latest .（CI 发版时会注入 --build-arg VERSION）
 npm run docker:run
 ```
 
-3. **访问应用**
+4. **访问应用**
 
-打开浏览器访问 [http://localhost:3000](http://localhost:3000)
+打开浏览器访问 [http://localhost:3000](http://localhost:3000)；健康检查：`curl http://localhost:3000/api/health`
 
 ### 裸机部署
 
