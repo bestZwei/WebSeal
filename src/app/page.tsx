@@ -30,6 +30,8 @@ export default function Home() {
     originalUrl: string;
     customText: string;
     signed: boolean;
+    imageHash?: string;
+    tsa?: { token: string; genTime: string; hashHex: string; tsaUrl: string } | null;
   } | null>(null);
   const [extractedWatermark, setExtractedWatermark] = useState<{
     timestamp: string;
@@ -38,7 +40,10 @@ export default function Home() {
     watermarkVersion: string;
     signed: boolean;
     signatureVerified: boolean | null;
+    imageHash?: string;
+    tsa?: { hashMatch: boolean; genTime?: string; error?: string } | null;
   } | null>(null);
+  const [tsaTokenFile, setTsaTokenFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'capture' | 'extract'>('capture');
   const [dragActive, setDragActive] = useState(false);
@@ -77,6 +82,8 @@ export default function Home() {
           originalUrl: result.originalUrl,
           customText: result.customText || '',
           signed: result.signed ?? false,
+          imageHash: result.imageHash,
+          tsa: result.tsa ?? null,
         });
         showToast('网页快照生成成功！', 'success');
       } else {
@@ -113,6 +120,9 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append('image', imageFile);
+      if (tsaTokenFile) {
+        formData.append('tsaTokenFile', tsaTokenFile);
+      }
 
       const response = await fetch('/api/extract-watermark', {
         method: 'POST',
@@ -128,6 +138,8 @@ export default function Home() {
           watermarkVersion: result.watermarkVersion ?? '1.0',
           signed: result.signed ?? false,
           signatureVerified: result.signatureVerified ?? null,
+          imageHash: result.imageHash,
+          tsa: result.tsa ?? null,
         });
         showToast('水印提取成功！', 'success');
       } else {
@@ -150,6 +162,29 @@ export default function Home() {
       } catch {
         showToast('下载失败，请稍后重试', 'error');
       }
+    }
+  };
+
+  const downloadTsaToken = () => {
+    if (!screenshotResult?.tsa) return;
+    try {
+      const { token, genTime, hashHex, tsaUrl } = screenshotResult.tsa;
+      const payload = JSON.stringify(
+        { token, genTime, hashHex, tsaUrl, originalUrl: screenshotResult.originalUrl },
+        null,
+        2
+      );
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+      link.download = generateFilename(screenshotResult.originalUrl, screenshotResult.timestamp)
+        .replace(/\.png$/, '') + '.tsa.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      showToast('时间戳凭证已下载，请与快照一同保存', 'success');
+    } catch {
+      showToast('凭证下载失败', 'error');
     }
   };
 
@@ -379,6 +414,18 @@ export default function Home() {
                         </div>
                       )}
 
+                      {screenshotResult.tsa && (
+                        <div className="flex items-center space-x-3 p-3 bg-amber-50 rounded-lg">
+                          <Clock className="h-5 w-5 text-amber-600" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">可信时间戳（TSA）</p>
+                            <p className="text-sm text-gray-600">
+                              权威机构背书于 {formatTimestamp(screenshotResult.tsa.genTime)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center space-x-3 p-3 bg-indigo-50 rounded-lg">
                         <Globe className="h-5 w-5 text-indigo-600" />
                         <div className="flex-1 min-w-0">
@@ -388,13 +435,23 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={handleDownload}
                       className="w-full mt-6 bg-gray-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                     >
                       <Download className="h-5 w-5" />
                       <span>下载快照</span>
                     </button>
+
+                    {screenshotResult.tsa && (
+                      <button
+                        onClick={downloadTsaToken}
+                        className="w-full mt-3 border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-all flex items-center justify-center space-x-2"
+                      >
+                        <Download className="h-5 w-5" />
+                        <span>下载时间戳凭证 (.tsa.json)</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -453,6 +510,32 @@ export default function Home() {
                     </label>
                   </div>
                 </div>
+
+                {/* 可选：TSA 时间戳凭证（伴随文件） */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    时间戳凭证（可选，生成快照时下载的 .tsa.json 文件）
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="file"
+                      accept=".json,.tsr"
+                      onChange={(e) => setTsaTokenFile(e.target.files?.[0] ?? null)}
+                      className="flex-1 text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 file:cursor-pointer hover:file:bg-gray-200"
+                    />
+                    {tsaTokenFile && (
+                      <button
+                        onClick={() => setTsaTokenFile(null)}
+                        className="text-sm text-gray-500 hover:text-gray-700"
+                      >
+                        清除
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    提供凭证后将额外验证：图片哈希是否与 TSA 背书一致（证明自签发时刻起未被修改）
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -496,6 +579,34 @@ export default function Home() {
                           </button>
                         </div>
                         <p className="text-gray-600 break-all text-sm">{extractedWatermark.url}</p>
+                      </div>
+                    )}
+
+                    {extractedWatermark.tsa && (
+                      <div className={`p-4 rounded-lg ${extractedWatermark.tsa.hashMatch ? 'bg-blue-50' : 'bg-red-50'}`}>
+                        <div className="flex items-start space-x-3">
+                          <Clock className={`h-6 w-6 mt-0.5 flex-shrink-0 ${extractedWatermark.tsa.hashMatch ? 'text-blue-600' : 'text-red-600'}`} />
+                          <div>
+                            <p className="font-semibold text-gray-900">可信时间戳（TSA）</p>
+                            {extractedWatermark.tsa.hashMatch ? (
+                              <p className="text-gray-600 text-sm mt-1">
+                                凭证与图片哈希一致：该图自 {formatTimestamp(extractedWatermark.tsa.genTime!)}
+                                （TSA 权威背书时间）起未被修改
+                              </p>
+                            ) : (
+                              <p className="text-red-700 text-sm mt-1">
+                                {extractedWatermark.tsa.error || '凭证中的哈希与当前图片不一致：图片在背书后被修改，或凭证与图片不匹配'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {extractedWatermark.imageHash && (
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="font-semibold text-gray-900 mb-1">图片哈希 (SHA-256)</p>
+                        <p className="text-gray-600 break-all text-xs font-mono">{extractedWatermark.imageHash}</p>
                       </div>
                     )}
                   </div>

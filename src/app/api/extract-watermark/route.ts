@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import { extractWatermark } from '@/lib/watermark';
+import { verifyTokenAgainstImage } from '@/lib/tsa';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
@@ -61,6 +63,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 可信时间戳验证（可选）：调用方附带 TSA 凭证（字段 tsaToken 文件或文本）时，
+    // 校验令牌内哈希是否与上传图片的实际哈希一致
+    const tsaTokenField = formData.get('tsaTokenFile');
+    let tsaTokenBase64: string | null = null;
+    if (tsaTokenField && typeof tsaTokenField !== 'string') {
+      const text = await tsaTokenField.text();
+      try {
+        const parsed = JSON.parse(text); // 伴随凭证文件格式：{ token: base64, ... }
+        tsaTokenBase64 = typeof parsed?.token === 'string' ? parsed.token : text.trim();
+      } catch {
+        tsaTokenBase64 = text.trim(); // 兼容直接提交 base64 DER
+      }
+    } else if (typeof tsaTokenField === 'string' && tsaTokenField.trim()) {
+      tsaTokenBase64 = tsaTokenField.trim();
+    }
+
+    let tsa: {
+      hashMatch: boolean;
+      genTime?: string;
+      error?: string;
+    } | null = null;
+
+    if (tsaTokenBase64) {
+      const imageHash = crypto.createHash('sha256').update(buffer).digest('hex');
+      const verification = await verifyTokenAgainstImage(tsaTokenBase64, imageHash);
+      tsa = {
+        hashMatch: verification.hashMatch,
+        genTime: verification.genTime?.toISOString(),
+        error: verification.error,
+      };
+    }
+
     return NextResponse.json({
       success: true,
       timestamp: watermarkData.timestamp,
@@ -70,6 +104,8 @@ export async function POST(request: NextRequest) {
       signed: watermarkData.signed,
       // true=签名验证通过；false=水印被篡改或伪造；null=服务未配置公钥无法判定
       signatureVerified: watermarkData.signatureVerified,
+      imageHash: crypto.createHash('sha256').update(buffer).digest('hex'),
+      tsa,
       extractedAt: new Date().toISOString(),
     });
   } catch (error) {

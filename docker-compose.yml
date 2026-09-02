@@ -14,6 +14,9 @@ services:
       # 水印签名密钥（生成方式: node scripts/generate-keys.mjs），取消注释并填入 PEM 内容
       # - WEBSEAL_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----...
       # - WEBSEAL_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
+      # 可信时间戳服务（RFC 3161），配置后对快照哈希请求权威时间背书
+      # - WEBSEAL_TSA_URL=https://freetsa.org/tsr
+      # - WEBSEAL_TSA_REQUIRED=false
     restart: unless-stopped
     mem_limit: 1g
     mem_reservation: 512m

@@ -18,7 +18,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx scripts/test-watermark.mjs && tsx scripts/test-url-guard.mjs",
+    "test": "tsx scripts/test-watermark.mjs && tsx scripts/test-url-guard.mjs && tsx scripts/test-tsa.mjs",
     "type-check": "tsc --noEmit",
     "docker:build": "docker build -t webseal:latest .",
     "docker:run": "docker run -d -p 3000:3000 --name webseal-container webseal:latest",
@@ -29,6 +29,7 @@
     "compose:logs": "docker-compose logs -f"
   },
   "dependencies": {
+    "@peculiar/asn1-tsp": "^2.9.4",
     "lucide-react": "^0.514.0",
     "next": "15.3.3",
     "puppeteer": "^24.10.0",

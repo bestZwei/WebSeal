@@ -90,6 +90,8 @@ npm run start
 | `SCREENSHOT_TIMEOUT` | `45000` | 截图超时时间（毫秒） |
 | `WEBSEAL_PRIVATE_KEY` | 未配置 | Ed25519 签名私钥（PKCS8 PEM）。不配置时水印以未签名模式嵌入 |
 | `WEBSEAL_PUBLIC_KEY` | 自动推导 | Ed25519 验证公钥（SPKI PEM），省略时从私钥推导 |
+| `WEBSEAL_TSA_URL` | 未配置 | RFC 3161 可信时间戳服务地址（如 `https://freetsa.org/tsr`），配置后对快照哈希请求权威时间背书 |
+| `WEBSEAL_TSA_REQUIRED` | `false` | 设为 `true` 时 TSA 请求失败会导致截图失败；默认 best-effort 降级为无时间戳 |
 
 ### 签名密钥配置
 

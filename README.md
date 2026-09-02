@@ -246,6 +246,22 @@ WebSeal 采用 LSB（Least Significant Bit）算法实现盲水印：
 
 > 注意：签名证明的是"签发来源与内容完整性"，不证明时间的真实性（需可信时间戳 TSA 支撑）。
 
+### 可信时间戳（RFC 3161 TSA）
+
+配置 `WEBSEAL_TSA_URL` 后，服务端会对最终快照 PNG 的 SHA-256 哈希向独立时间戳机构请求背书，
+获得"该哈希在 genTime 时刻已存在"的权威证明：
+
+- **时间可信**：时间戳由第三方 TSA 签发，不由本服务自说自话
+- **完整性绑定**：凭证中的哈希与图片一致，即证明图片自背书时刻起未被修改
+- **凭证随行**：生成快照时可下载 `.tsa.json` 凭证文件，提取验证时上传即可核对
+
+| 环境变量 | 说明 |
+| --- | --- |
+| `WEBSEAL_TSA_URL` | TSA 服务地址（RFC 3161），如 `https://freetsa.org/tsr`；不配置则功能关闭 |
+| `WEBSEAL_TSA_REQUIRED` | 设为 `true` 时 TSA 请求失败会导致截图失败；默认 best-effort 降级 |
+
+> 凭证内容的完整信任链验证（TSA 证书校验）可用 `openssl ts -verify` 离线复核。
+
 
 ## 🎯 使用场景
 

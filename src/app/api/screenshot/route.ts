@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import puppeteer, { type LaunchOptions } from 'puppeteer';
 import { addWatermark, canonicalPayload } from '@/lib/watermark';
 import { signPayload } from '@/lib/signature';
+import { TSA_ENABLED, requestTimestamp, type TimestampResult } from '@/lib/tsa';
 import { checkPublicHttpUrl, checkPublicHttpUrlWithDns, isPrivateHostname } from '@/lib/url-guard';
 import { logger, logSafeHost } from '@/lib/logger';
 
@@ -149,6 +151,25 @@ export async function POST(request: NextRequest) {
       });
 
       const base64Image = `data:image/png;base64,${watermarkedImage.toString('base64')}`;
+      const imageHash = crypto.createHash('sha256').update(watermarkedImage).digest('hex');
+
+      // 可信时间戳（RFC 3161）：对最终快照 PNG 的哈希背书。
+      // 未配置 TSA 时跳过；请求失败默认降级为无时间戳（可配 WEBSEAL_TSA_REQUIRED=true 强制失败）
+      let tsa: TimestampResult | null = null;
+      if (TSA_ENABLED) {
+        try {
+          tsa = await requestTimestamp(Buffer.from(imageHash, 'hex'), process.env.WEBSEAL_TSA_URL!.trim());
+          logger.info('tsa_timestamp_obtained', { genTime: tsa.genTime.toISOString() });
+        } catch (tsaError) {
+          logger.warn('tsa_request_failed', { message: (tsaError as Error).message });
+          if (process.env.WEBSEAL_TSA_REQUIRED === 'true') {
+            return NextResponse.json(
+              { error: `可信时间戳服务请求失败: ${(tsaError as Error).message}` },
+              { status: 502 }
+            );
+          }
+        }
+      }
 
       return NextResponse.json({
         success: true,
@@ -157,6 +178,13 @@ export async function POST(request: NextRequest) {
         originalUrl: url,
         customText: customText || '',
         signed: !!signature,
+        imageHash,
+        tsa: tsa && {
+          token: tsa.token,
+          genTime: tsa.genTime.toISOString(),
+          hashHex: tsa.hashHex,
+          tsaUrl: tsa.tsaUrl,
+        },
       });
     } catch (pageError) {
       // 确保浏览器被关闭，避免进程泄漏
