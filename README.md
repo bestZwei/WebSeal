@@ -358,7 +358,7 @@ A: 部分动态网页可能需要更长加载时间，可以尝试多次截图�
 
 ## 📄 许可证
 
-本项目基于 [MIT License](LICENSE) 开源协议。
+本项目基于 [Anti-Capitalist Software License (v 1.4)](LICENSE) 开源协议。
 
 ## 👥 团队
 

@@ -12,7 +12,7 @@
     "steganography"
   ],
   "author": "WebSeal Team",
-  "license": "MIT",
+  "license": "Anti-Capitalist Software License 1.4",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
